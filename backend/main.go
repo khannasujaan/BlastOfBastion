@@ -7,19 +7,24 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/khannasujaan/BlastOfBastion/internal/database"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: No .env file found")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Warning: No .env file found")
 	}
+
+	database.ConnectToDatabase()
+	log.Println("Connected to database successfully")
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Server is healthy")
 	})
 
 	port := os.Getenv("PORT")
-	fmt.Println("Loading Server at PORT", port)
+	log.Println("Loading Server at PORT", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal("Error in Server loading")
 	}
