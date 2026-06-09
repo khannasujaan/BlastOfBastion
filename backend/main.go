@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	controller "github.com/khannasujaan/BlastOfBastion/internal/controllers"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
 )
 
@@ -22,6 +23,8 @@ func main() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Server is healthy")
 	})
+
+	http.HandleFunc("/register", controller.HandleRegister)
 
 	port := os.Getenv("PORT")
 	log.Println("Loading Server at PORT", port)
