@@ -25,6 +25,7 @@ func main() {
 	})
 
 	http.HandleFunc("/register", controller.HandleRegister)
+	http.HandleFunc("/login", controller.HandleLogging)
 
 	port := os.Getenv("PORT")
 	log.Println("Loading Server at PORT", port)
