@@ -7,6 +7,7 @@ CREATE TABLE troops_catalog (
     health SMALLINT NOT NULL DEFAULT 0,
     housing_space SMALLINT NOT NULL DEFAULT 0,
     level SMALLINT NOT NULL DEFAULT 1,
+    speed SMALLINT NOT NULL DEFAULT 10,
     unlock_thall_level SMALLINT NOT NULL DEFAULT 1,
     range SMALLINT NOT NULL DEFAULT 1,
     UNIQUE(name, level)

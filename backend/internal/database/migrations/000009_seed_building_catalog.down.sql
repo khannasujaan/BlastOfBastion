@@ -1,0 +1,1 @@
+DELETE FROM building_catalog;
