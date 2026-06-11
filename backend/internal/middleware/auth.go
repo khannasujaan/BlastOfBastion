@@ -40,7 +40,7 @@ func VerifyJWT(f http.HandlerFunc) http.HandlerFunc {
 			log.Println("Invalid token claims, ", err)
 			return
 		}
-		playerID := claims.ID
+		playerID := claims.Subject
 		ctx := context.WithValue(r.Context(), "playerID", playerID)
 		r = r.WithContext(ctx)
 		f(w, r)

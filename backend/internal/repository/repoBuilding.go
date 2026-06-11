@@ -1,0 +1,143 @@
+package repository
+
+import (
+	"errors"
+	"log"
+
+	"github.com/google/uuid"
+	"github.com/khannasujaan/BlastOfBastion/internal/database"
+	"github.com/khannasujaan/BlastOfBastion/internal/dto"
+)
+
+var ErrNotEnoughResouces = errors.New("Not enough resources")
+var ErrSpaceOccupied = errors.New("Space Occupied")
+var ErrBuildingNotFound = errors.New("No such building found")
+
+func NewBuilding(id uuid.UUID, BuildReq dto.BuildRequest) error {
+	var err error
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	query := `SELECT grid_x, grid_y FROM player_buildings WHERE player_id = $1`
+	rows, err := tx.Query(query, id)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var x, y int
+		err = rows.Scan(&x, &y)
+		if err != nil {
+			log.Println("Error in fetching Data, ", err)
+			return err
+		}
+		if (Abs(BuildReq.GridX-x) < 2) && (Abs(BuildReq.GridY-y) < 2) {
+			return ErrSpaceOccupied
+		}
+	}
+
+	query = `SELECT gold, elixir FROM player_stats WHERE player_id = $1`
+	var gold, elixir int
+	err = tx.QueryRow(query, id).Scan(&gold, &elixir)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return err
+	}
+	query = `SELECT cost_gold, cost_elixir FROM building_catalog WHERE id = $1`
+	var costGold, costElixir int
+	buildingUuid, err := uuid.Parse(BuildReq.BuildingID)
+	if err != nil {
+		return err
+	}
+	err = tx.QueryRow(query, buildingUuid).Scan(&costGold, &costElixir)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return err
+	}
+
+	if (gold < costGold) || (elixir < costElixir) {
+		log.Println("Not enouhgt resources")
+		return ErrNotEnoughResouces
+	}
+
+	var buildingCount int
+	query = `SELECT COUNT(*) FROM player_buildings WHERE player_id = $1 AND building_id = $2`
+	err = tx.QueryRow(query, id, buildingUuid).Scan(&buildingCount)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return err
+	}
+
+	// CHECK THE AMOUNT OF BUILDINGS
+
+	query = `UPDATE player_stats SET gold = gold - $1, elixir = elixir - $2 WHERE player_id = $3`
+	_, err = tx.Exec(query, costGold, costElixir, id)
+	if err != nil {
+		log.Println("Error deducting resources:", err)
+		return err
+	}
+
+	query = `INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y) VALUES ($1, $2, $3, $4)`
+	_, err = tx.Exec(query, id, buildingUuid, BuildReq.GridX, BuildReq.GridY)
+	if err != nil {
+		log.Println("Error inserting building:", err)
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func MoveBuilding(id uuid.UUID, BuildReq dto.BuildMoveRequest) error {
+	var err error
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `SELECT grid_x, grid_y FROM player_buildings WHERE player_id = $1`
+	rows, err := tx.Query(query, id)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var x, y int
+		err = rows.Scan(&x, &y)
+		if err != nil {
+			log.Println("Error in fetching Data, ", err)
+			return err
+		}
+		if !((BuildReq.IGridX == x) && (BuildReq.IGridY == y)) && (Abs(BuildReq.GridX-x) < 2) && (Abs(BuildReq.GridY-y) < 2) {
+			return ErrSpaceOccupied
+		}
+	}
+
+	query = `UPDATE player_buildings SET grid_x = $1, grid_y = $2 WHERE grid_x = $3 AND grid_y = $4 AND player_id = $5`
+	result, err := tx.Exec(query, BuildReq.GridX, BuildReq.GridY, BuildReq.IGridX, BuildReq.IGridY, id)
+	if err != nil {
+		log.Println("Error moving building:", err)
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrBuildingNotFound
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

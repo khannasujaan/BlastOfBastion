@@ -36,7 +36,10 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	newPlayer.Password = string(password_hash)
 	// fmt.Println(newPlayer.Id, newPlayer.Username, newPlayer.Password_hash, newPlayer.Is_deleted)
-	savedID, err := repository.Registering(w, newPlayer)
+	savedID, err := repository.Registering(newPlayer)
+	if err == repository.ErrUsernameWasTaken {
+		http.Error(w, "Username was taken", http.StatusBadRequest)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	log.Println("Successfull Query... Stored data as id", savedID)
@@ -56,8 +59,22 @@ func HandleLogging(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	JWTtokenSigned, err := repository.Login(w, newPlayer)
-	if err != nil {
+	JWTtokenSigned, err := repository.Login(newPlayer)
+	if err == repository.ErrUsernameNotFound {
+		http.Error(w, "Username not found", http.StatusBadRequest)
+		log.Println("Username not found")
+		return
+	} else if err == repository.ErrIncorrectPassword {
+		http.Error(w, "Incorrect password", http.StatusBadRequest)
+		log.Println("Incorrect password")
+		return
+	} else if err == repository.ErrJWTSigningError {
+		http.Error(w, "Error in Signing JWT", http.StatusInternalServerError)
+		log.Println("Error in Signing JWT")
+		return
+	} else if err != nil {
+		http.Error(w, "Error encountered", http.StatusInternalServerError)
+		log.Println("Error encoutnered, ", err)
 		return
 	}
 

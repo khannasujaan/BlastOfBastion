@@ -2,8 +2,8 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
@@ -15,32 +15,49 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Registering(w http.ResponseWriter, newPlayer dto.Player) (uuid.UUID, error) {
+type Signed interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+
+func Abs[T Signed](x T) T {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+var ErrUsernameWasTaken = errors.New("Username was taken")
+var ErrUsernameNotFound = errors.New("Username not found")
+var ErrIncorrectPassword = errors.New("Incorrect password")
+var ErrJWTSigningError = errors.New("Couldn't sign JWT token")
+
+func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 	var err error
 	var searchTableForUsername string
-	err = database.Db.QueryRow("SELECT username FROM players WHERE username = $1", newPlayer.Username).Scan(&searchTableForUsername)
-	if err == nil {
-		http.Error(w, "Username was taken", http.StatusBadRequest)
-		log.Println("Username was taken, Error:", err)
+	tx, err := database.Db.Begin()
+	if err != nil {
 		return uuid.UUID{0}, err
 	}
+	defer tx.Rollback()
+	err = tx.QueryRow("SELECT username FROM players WHERE username = $1", newPlayer.Username).Scan(&searchTableForUsername)
+	if err == nil {
+		log.Println("Username was taken, Error:", err)
+		return uuid.UUID{0}, ErrUsernameWasTaken
+	}
 	if err != sql.ErrNoRows {
-		http.Error(w, "Couldn't fetch data from database", http.StatusInternalServerError)
 		log.Println("Couldn't fetch data from database, Error:", err)
 		return uuid.UUID{0}, err
 	}
 
 	var savedId uuid.UUID
-	err = database.Db.QueryRow("INSERT INTO players (username, password_hash) VALUES ($1, $2) RETURNING id", newPlayer.Username, newPlayer.Password).Scan(&savedId)
+	err = tx.QueryRow("INSERT INTO players (username, password_hash) VALUES ($1, $2) RETURNING id", newPlayer.Username, newPlayer.Password).Scan(&savedId)
 	if err != nil {
-		http.Error(w, "Couldn't insert data in database", http.StatusInternalServerError)
 		log.Println("Couldn't insert data in database, Error:", err)
 		return uuid.UUID{0}, err
 	}
 
-	_, err = database.Db.Exec("INSERT INTO player_stats (player_id) VALUES ($1)", savedId)
+	_, err = tx.Exec("INSERT INTO player_stats (player_id) VALUES ($1)", savedId)
 	if err != nil {
-		http.Error(w, "Couldn't insert data in database", http.StatusInternalServerError)
 		log.Println("Couldn't insert data in database, Error:", err)
 		return uuid.UUID{0}, err
 	}
@@ -54,17 +71,21 @@ func Registering(w http.ResponseWriter, newPlayer dto.Player) (uuid.UUID, error)
 	($1, '09135b20-9b85-4637-abb8-32fc1d486752', 18, 15, NULL, true);
 	`
 
-	_, err = database.Db.Exec(queryClan, savedId)
+	_, err = tx.Exec(queryClan, savedId)
 	if err != nil {
-		http.Error(w, "Couldn't insert data in database", http.StatusInternalServerError)
 		log.Println("Couldn't insert data in database, Error:", err)
+		return uuid.UUID{0}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		return uuid.UUID{0}, err
 	}
 
 	return savedId, nil
 }
 
-func Login(w http.ResponseWriter, newPlayer dto.Player) (string, error) {
+func Login(newPlayer dto.Player) (string, error) {
 	var err error
 	var selectedPlayer model.Player
 	err = database.Db.QueryRow("SELECT * FROM players WHERE username = $1", newPlayer.Username).Scan(
@@ -74,34 +95,30 @@ func Login(w http.ResponseWriter, newPlayer dto.Player) (string, error) {
 		&selectedPlayer.Is_deleted,
 	)
 	if err == sql.ErrNoRows {
-		http.Error(w, "Username not found", http.StatusNotFound)
 		log.Println("Username not found, Error:", err)
-		return "", err
+		return "", ErrUsernameNotFound
 	} else if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
 		log.Println("Database error, Error:", err)
 		return "", err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(selectedPlayer.Password_hash), []byte(newPlayer.Password))
 	if err != nil {
-		http.Error(w, "Incorrect password", http.StatusUnauthorized)
 		log.Println("Incorrect password, Error:", err)
-		return "", err
+		return "", ErrIncorrectPassword
 	}
 	log.Println(selectedPlayer.Password_hash, newPlayer.Password)
 
 	claims := jwt.RegisteredClaims{
-		ID:        selectedPlayer.Id.String(),
+		Subject:   selectedPlayer.Id.String(),
 		Issuer:    selectedPlayer.Username,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 	}
 	JWTtokenUnsigned := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	JWTtokenSigned, err := JWTtokenUnsigned.SignedString([]byte(os.Getenv("JWT_KEY")))
 	if err != nil {
-		http.Error(w, "Couldn't sign JWT token", http.StatusInternalServerError)
 		log.Println("Couldn't sign JWT token, Error:", err)
-		return "", err
+		return "", ErrJWTSigningError
 	}
 	return JWTtokenSigned, nil
 }
