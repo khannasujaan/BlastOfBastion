@@ -12,11 +12,12 @@ type LoggingResponse struct {
 	Token   string `json:"token"`
 }
 
-type BuildRequest struct {
+type BuildNewRequest struct {
 	BuildingID string `json:"building_id"`
 	GridX      int    `json:"grid_x"`
 	GridY      int    `json:"grid_y"`
 }
+type BuildUpgradeStartRequest BuildNewRequest
 
 type BuildMoveRequest struct {
 	BuildingID string `json:"building_id"`
@@ -27,7 +28,7 @@ type BuildMoveRequest struct {
 }
 
 type VillageSync struct {
-	Id         uuid.UUID `json:"id"`
+	Id         int       `json:"id"`
 	BuildingID uuid.UUID `json:"building_id"`
 	Name       string    `json:"name"`
 	Level      int       `json:"level"`

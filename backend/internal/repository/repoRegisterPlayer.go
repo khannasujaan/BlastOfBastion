@@ -36,30 +36,30 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 	var searchTableForUsername string
 	tx, err := database.Db.Begin()
 	if err != nil {
-		return uuid.UUID{0}, err
+		return uuid.Nil, err
 	}
 	defer tx.Rollback()
 	err = tx.QueryRow("SELECT username FROM players WHERE username = $1", newPlayer.Username).Scan(&searchTableForUsername)
 	if err == nil {
 		log.Println("Username was taken, Error:", err)
-		return uuid.UUID{0}, ErrUsernameWasTaken
+		return uuid.Nil, ErrUsernameWasTaken
 	}
 	if err != sql.ErrNoRows {
 		log.Println("Couldn't fetch data from database, Error:", err)
-		return uuid.UUID{0}, err
+		return uuid.Nil, err
 	}
 
 	var savedId uuid.UUID
 	err = tx.QueryRow("INSERT INTO players (username, password_hash) VALUES ($1, $2) RETURNING id", newPlayer.Username, newPlayer.Password).Scan(&savedId)
 	if err != nil {
 		log.Println("Couldn't insert data in database, Error:", err)
-		return uuid.UUID{0}, err
+		return uuid.Nil, err
 	}
 
 	_, err = tx.Exec("INSERT INTO player_stats (player_id) VALUES ($1)", savedId)
 	if err != nil {
 		log.Println("Couldn't insert data in database, Error:", err)
-		return uuid.UUID{0}, err
+		return uuid.Nil, err
 	}
 
 	queryClan := `
@@ -74,12 +74,12 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 	_, err = tx.Exec(queryClan, savedId)
 	if err != nil {
 		log.Println("Couldn't insert data in database, Error:", err)
-		return uuid.UUID{0}, err
+		return uuid.Nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return uuid.UUID{0}, err
+		return uuid.Nil, err
 	}
 
 	return savedId, nil

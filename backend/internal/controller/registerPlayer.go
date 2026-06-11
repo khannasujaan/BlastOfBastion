@@ -39,6 +39,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	savedID, err := repository.Registering(newPlayer)
 	if err == repository.ErrUsernameWasTaken {
 		http.Error(w, "Username was taken", http.StatusBadRequest)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -107,7 +108,11 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not parse UUID", http.StatusInternalServerError)
 		return
 	}
-	err = database.Db.QueryRow("SELECT * FROM player_stats WHERE player_id = $1", parsedUUID).Scan(
+
+	query := `
+	SELECT id, gold, elixir, attacks_won, defenses_won, total_attacks, total_defends, trophies, last_attacked_time, last_collected_gold, last_collected_elixir 
+	FROM player_stats WHERE player_id = $1`
+	err = database.Db.QueryRow(query, parsedUUID).Scan(
 		&selectedPlayer.Id,
 		&selectedPlayer.Gold,
 		&selectedPlayer.Elixir,

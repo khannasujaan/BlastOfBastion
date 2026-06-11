@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
@@ -15,7 +16,7 @@ var ErrSpaceOccupied = errors.New("Space Occupied")
 var ErrBuildingNotFound = errors.New("No such building found")
 var ErrTownhallLevelLow = errors.New("A higher Town hall level is required for that")
 
-func GetPlayerTownHallLevel(playerID uuid.UUID) (int, error) {
+func GetPlayerTownHallLevel(playerID uuid.UUID, tx *sql.Tx) (int, error) {
 	query := `
         SELECT bc.level 
         FROM player_buildings pb
@@ -24,7 +25,7 @@ func GetPlayerTownHallLevel(playerID uuid.UUID) (int, error) {
     `
 
 	var townHallLevel int
-	err := database.Db.QueryRow(query, playerID).Scan(&townHallLevel)
+	err := tx.QueryRow(query, playerID).Scan(&townHallLevel)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -36,22 +37,33 @@ func GetPlayerTownHallLevel(playerID uuid.UUID) (int, error) {
 	return townHallLevel, nil
 }
 
-func GetBuilidingLevelandName(buildingId uuid.UUID) (int, string, error) {
+func GetBuilidingLevelandName(buildingId uuid.UUID, tx *sql.Tx) (int, string, error) {
 	query := `SELECT level, name FROM building_catalog WHERE id = $1`
 	var level int
 	var name string
-	err := database.Db.QueryRow(query, buildingId).Scan(&level, &name)
+	err := tx.QueryRow(query, buildingId).Scan(&level, &name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, "", errors.New("No such building found")
 		}
 		return 0, "", err
 	}
-
 	return level, name, nil
 }
 
-func NewBuilding(id uuid.UUID, BuildReq dto.BuildRequest) error {
+func GetPlayerGoldandElixir(tx *sql.Tx, id uuid.UUID) (int, int, error) {
+	var err error
+	query := `SELECT gold, elixir FROM player_stats WHERE player_id = $1`
+	var gold, elixir int
+	err = tx.QueryRow(query, id).Scan(&gold, &elixir)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return 0, 0, err
+	}
+	return gold, elixir, nil
+}
+
+func NewBuilding(id uuid.UUID, BuildReq dto.BuildNewRequest) error {
 	var err error
 	tx, err := database.Db.Begin()
 	if err != nil {
@@ -76,11 +88,8 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildRequest) error {
 		}
 	}
 
-	query = `SELECT gold, elixir FROM player_stats WHERE player_id = $1`
-	var gold, elixir int
-	err = tx.QueryRow(query, id).Scan(&gold, &elixir)
+	gold, elixir, err := GetPlayerGoldandElixir(tx, id)
 	if err != nil {
-		log.Println("Error in fetching Data, ", err)
 		return err
 	}
 	query = `SELECT cost_gold, cost_elixir FROM building_catalog WHERE id = $1`
@@ -100,7 +109,7 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildRequest) error {
 		return ErrNotEnoughResouces
 	}
 
-	playerTownhall, err := GetPlayerTownHallLevel(id)
+	playerTownhall, err := GetPlayerTownHallLevel(id, tx)
 	if err != nil {
 		log.Println("Error in fetching Data, ", err)
 		return err
@@ -189,6 +198,83 @@ func MoveBuilding(id uuid.UUID, BuildReq dto.BuildMoveRequest) error {
 	}
 	if rowsAffected == 0 {
 		return ErrBuildingNotFound
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error {
+	var err error
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	buildingIDuuid, err := uuid.Parse(BuildReq.BuildingID)
+	if err != nil {
+		return err
+	}
+
+	level, name, err := GetBuilidingLevelandName(buildingIDuuid, tx)
+	if err != nil {
+		return err
+	}
+
+	query := `SELECT id FROM player_buildings WHERE player_id = $1 AND grid_x = $2 AND grid_y = $3`
+	var instanceId int
+	err = tx.QueryRow(query, id, BuildReq.GridX, BuildReq.GridY).Scan(&instanceId)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return err
+	}
+
+	query = `SELECT id, unlock_thall_level, cost_gold, cost_elixir, build_time FROM building_catalog WHERE name = $1 AND level = $2`
+	var newuuid uuid.UUID
+	var tHallNeedLevel, costGold, costElixir, buildTime int
+	err = tx.QueryRow(query, name, level+1).Scan(&newuuid, &tHallNeedLevel, &costGold, &costElixir, &buildTime)
+	if err != nil {
+		log.Println("Can't upgrade", err)
+		return ErrTownhallLevelLow
+	}
+	currentThallLevel, err := GetPlayerTownHallLevel(id, tx)
+	if err != nil {
+		log.Println("couldn't fetch town hall")
+		return err
+	}
+	if tHallNeedLevel > currentThallLevel {
+		log.Println("Can't upgrade", err)
+		return ErrTownhallLevelLow
+	}
+
+	gold, elixir, err := GetPlayerGoldandElixir(tx, id)
+	if err != nil {
+		return err
+	}
+
+	if (gold < costGold) || (elixir < costElixir) {
+		return ErrNotEnoughResouces
+	}
+
+	// Verification done
+	query = `UPDATE player_stats SET gold = gold - $1, elixir = elixir - $2 WHERE player_id = $3`
+	_, err = tx.Exec(query, costGold, costElixir, id)
+	if err != nil {
+		log.Println("Error deducting resources:", err)
+		return err
+	}
+
+	now := time.Now()
+	query = `UPDATE player_buildings SET building_id = $1, built_by = $2, is_built = false WHERE id = $3`
+	_, err = tx.Exec(query, newuuid, now.Add(time.Second*time.Duration(buildTime)), instanceId)
+	if err != nil {
+		log.Println("Error upgrading building:", err)
+		return err
 	}
 
 	err = tx.Commit()
