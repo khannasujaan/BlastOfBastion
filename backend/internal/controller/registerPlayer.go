@@ -12,7 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
 	"github.com/khannasujaan/BlastOfBastion/internal/dto"
-	model "github.com/khannasujaan/BlastOfBastion/internal/models"
+	"github.com/khannasujaan/BlastOfBastion/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -70,11 +70,11 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	queryClan := `
 	INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y, built_by, is_built) VALUES
-	($1, "e2884f17-8356-4e7a-bb95-42f5c22d5919", 15, 15, NULL, true),
-	($1, "bd85d5b5-f8cd-4396-aad7-0d8163103c36", 15, 18, NULL, true),
-	($1, "512ef74f-2a4a-4ccc-93ef-e483634154c3", 15, 12, NULL, true),
-	($1, "6de702e0-d5de-4224-939a-83e0c207e455", 12, 15, NULL, true),
-	($1, "09135b20-9b85-4637-abb8-32fc1d486752", 18, 15, NULL, true);
+	($1, 'e2884f17-8356-4e7a-bb95-42f5c22d5919', 15, 15, NULL, true),
+	($1, 'bd85d5b5-f8cd-4396-aad7-0d8163103c36', 15, 18, NULL, true),
+	($1, '512ef74f-2a4a-4ccc-93ef-e483634154c3', 15, 12, NULL, true),
+	($1, '6de702e0-d5de-4224-939a-83e0c207e455', 12, 15, NULL, true),
+	($1, '09135b20-9b85-4637-abb8-32fc1d486752', 18, 15, NULL, true);
 	`
 
 	_, err = database.Db.Exec(queryClan, savedId)
@@ -125,6 +125,7 @@ func HandleLogging(w http.ResponseWriter, r *http.Request) {
 		log.Println("Incorrect password, Error:", err)
 		return
 	}
+	log.Println(selectedPlayer.Password_hash, newPlayer.Password)
 
 	claims := jwt.RegisteredClaims{
 		ID:        selectedPlayer.Id.UUID.String(),
