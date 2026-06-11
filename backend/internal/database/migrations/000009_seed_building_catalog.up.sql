@@ -40,7 +40,5 @@ INSERT INTO building_catalog (id, name, type, level, base_health, unlock_thall_l
     ('fa490b0e-0b5c-43e9-bbbe-ebffbfa86a79', 'ATower', 'defense', 2, 420, 2, 2000,  0, 120),
     ('1f4b62c0-c710-4c76-943f-a6d2ac67e799', 'ATower', 'defense', 3, 460, 3, 5000,  0, 1200),
     ('9baabdb5-9eb9-4b55-9c2c-e0652b5b7674', 'ATower', 'defense', 4, 500, 4, 20000, 0, 3600),
-    ('385c433f-258d-4e7a-a31e-b86815f98d9d', 'Wall',   'defense', 1, 100, 1, 100,   0, 0),
-    ('b803b5c6-2880-4958-a9f8-6b234b811686', 'Wall',   'defense', 2, 200, 2, 1000,  0, 0),
-    ('b29c7491-9a81-49d3-93ed-fba3f492f2c4', 'Wall',   'defense', 3, 400, 3, 5000,  0, 0),
-    ('f6a6e1d2-a7fd-4d36-9541-ebb7f2a62d12', 'Wall',   'defense', 4, 800, 4, 10000, 0, 0);
+    ('385c433f-258d-4e7a-a31e-b86815f98d9d', 'WTower', 'defense', 1, 400, 3, 5000,  0, 1800),
+    ('b803b5c6-2880-4958-a9f8-6b234b811686', 'WTower', 'defense', 2, 450, 4, 25000, 0, 3600);

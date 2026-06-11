@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/khannasujaan/BlastOfBastion/internal/controller"
+	"github.com/khannasujaan/BlastOfBastion/internal/middleware"
 )
 
 func Routes() {
@@ -14,4 +15,7 @@ func Routes() {
 
 	http.HandleFunc("/register", controller.HandleRegister)
 	http.HandleFunc("/login", controller.HandleLogging)
+
+	http.HandleFunc("/me", middleware.VerifyJWT(controller.GetProfile))
+
 }

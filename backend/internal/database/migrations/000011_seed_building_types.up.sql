@@ -7,10 +7,8 @@ INSERT INTO defense_buildings (building_id, range, damage_per_attack, attack_spe
     ('fa490b0e-0b5c-43e9-bbbe-ebffbfa86a79', 10, 7,  750),
     ('1f4b62c0-c710-4c76-943f-a6d2ac67e799', 10, 9,  720),
     ('9baabdb5-9eb9-4b55-9c2c-e0652b5b7674', 10, 13, 700),
-    ('385c433f-258d-4e7a-a31e-b86815f98d9d', 0, 0, 0),
-    ('b803b5c6-2880-4958-a9f8-6b234b811686', 0, 0, 0),
-    ('b29c7491-9a81-49d3-93ed-fba3f492f2c4', 0, 0, 0),
-    ('f6a6e1d2-a7fd-4d36-9541-ebb7f2a62d12', 0, 0, 0);
+    ('385c433f-258d-4e7a-a31e-b86815f98d9d', 11, 20, 200),
+    ('b803b5c6-2880-4958-a9f8-6b234b811686', 11, 25, 200);
 
 INSERT INTO resources_gen (building_id, gen_per_hour, storage) VALUES
     ('bd85d5b5-f8cd-4396-aad7-0d8163103c36', 200, 1000),

@@ -1,18 +1,15 @@
 package controller
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
-	"time"
 
-	"github.com/gofrs/uuid"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
 	"github.com/khannasujaan/BlastOfBastion/internal/dto"
 	"github.com/khannasujaan/BlastOfBastion/internal/model"
+	"github.com/khannasujaan/BlastOfBastion/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,53 +36,10 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	newPlayer.Password = string(password_hash)
 	// fmt.Println(newPlayer.Id, newPlayer.Username, newPlayer.Password_hash, newPlayer.Is_deleted)
-
-	var searchTableForUsername string
-	err = database.Db.QueryRow("SELECT username FROM players WHERE username = $1", newPlayer.Username).Scan(&searchTableForUsername)
-	if err == nil {
-		http.Error(w, "Username was taken", http.StatusBadRequest)
-		log.Println("Username was taken, Error:", err)
-		return
-	}
-	if err != sql.ErrNoRows {
-		http.Error(w, "Couldn't fetch data from database", http.StatusInternalServerError)
-		log.Println("Couldn't fetch data from database, Error:", err)
-		return
-	}
-
-	var savedId uuid.UUID
-	err = database.Db.QueryRow("INSERT INTO players (username, password_hash) VALUES ($1, $2) RETURNING id", newPlayer.Username, newPlayer.Password).Scan(&savedId)
-	if err != nil {
-		http.Error(w, "Couldn't insert data in database", http.StatusInternalServerError)
-		log.Println("Couldn't insert data in database, Error:", err)
-		return
-	}
-
-	_, err = database.Db.Exec("INSERT INTO player_stats (player_id) VALUES ($1)", savedId)
-	if err != nil {
-		http.Error(w, "Couldn't insert data in database", http.StatusInternalServerError)
-		log.Println("Couldn't insert data in database, Error:", err)
-		return
-	}
-
-	queryClan := `
-	INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y, built_by, is_built) VALUES
-	($1, 'e2884f17-8356-4e7a-bb95-42f5c22d5919', 15, 15, NULL, true),
-	($1, 'bd85d5b5-f8cd-4396-aad7-0d8163103c36', 15, 18, NULL, true),
-	($1, '512ef74f-2a4a-4ccc-93ef-e483634154c3', 15, 12, NULL, true),
-	($1, '6de702e0-d5de-4224-939a-83e0c207e455', 12, 15, NULL, true),
-	($1, '09135b20-9b85-4637-abb8-32fc1d486752', 18, 15, NULL, true);
-	`
-
-	_, err = database.Db.Exec(queryClan, savedId)
-	if err != nil {
-		http.Error(w, "Couldn't insert data in database", http.StatusInternalServerError)
-		log.Println("Couldn't insert data in database, Error:", err)
-		return
-	}
+	savedID, err := repository.Registering(w, newPlayer)
 
 	w.WriteHeader(http.StatusCreated)
-	log.Println("Successfull Query... Stored data as id", savedId)
+	log.Println("Successfull Query... Stored data as id", savedID)
 
 }
 
@@ -102,41 +56,8 @@ func HandleLogging(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var selectedPlayer model.Player
-	err = database.Db.QueryRow("SELECT * FROM players WHERE username = $1", newPlayer.Username).Scan(
-		&selectedPlayer.Id,
-		&selectedPlayer.Username,
-		&selectedPlayer.Password_hash,
-		&selectedPlayer.Is_deleted,
-	)
-	if err == sql.ErrNoRows {
-		http.Error(w, "Username not found", http.StatusNotFound)
-		log.Println("Username not found, Error:", err)
-		return
-	} else if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		log.Println("Database error, Error:", err)
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(selectedPlayer.Password_hash), []byte(newPlayer.Password))
+	JWTtokenSigned, err := repository.Login(w, newPlayer)
 	if err != nil {
-		http.Error(w, "Incorrect password", http.StatusUnauthorized)
-		log.Println("Incorrect password, Error:", err)
-		return
-	}
-	log.Println(selectedPlayer.Password_hash, newPlayer.Password)
-
-	claims := jwt.RegisteredClaims{
-		ID:        selectedPlayer.Id.UUID.String(),
-		Issuer:    selectedPlayer.Username,
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-	}
-	JWTtokenUnsigned := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	JWTtokenSigned, err := JWTtokenUnsigned.SignedString([]byte(os.Getenv("JWT_KEY")))
-	if err != nil {
-		http.Error(w, "Couldn't sign JWT token", http.StatusInternalServerError)
-		log.Println("Couldn't sign JWT token, Error:", err)
 		return
 	}
 
@@ -147,4 +68,48 @@ func HandleLogging(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(responseVar)
+}
+
+func GetProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	playerID := r.Context().Value("playerID")
+	var err error
+	var selectedPlayer model.PlayerStats
+	// log.Println(playerID)
+	idString, ok := playerID.(string)
+	if !ok {
+		http.Error(w, "Invalid player ID format in context", http.StatusInternalServerError)
+		return
+	}
+	parsedUUID, err := uuid.Parse(idString)
+	if err != nil {
+		http.Error(w, "Could not parse UUID", http.StatusInternalServerError)
+		return
+	}
+	err = database.Db.QueryRow("SELECT * FROM player_stats WHERE player_id = $1", parsedUUID).Scan(
+		&selectedPlayer.Id,
+		&selectedPlayer.Gold,
+		&selectedPlayer.Elixir,
+		&selectedPlayer.AttacksWon,
+		&selectedPlayer.DefensesWon,
+		&selectedPlayer.AttacksTotal,
+		&selectedPlayer.DefendsTotal,
+		&selectedPlayer.Trophies,
+		&selectedPlayer.LastTimeAttacked,
+		&selectedPlayer.LastCollectedGold,
+		&selectedPlayer.LastCollectedElixir,
+	)
+	if err != nil {
+		http.Error(w, "Error in fetching data", http.StatusInternalServerError)
+		log.Println("Error in fetching data, err = ", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(selectedPlayer)
 }
