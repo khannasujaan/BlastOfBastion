@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
 	"log"
 
@@ -12,6 +13,43 @@ import (
 var ErrNotEnoughResouces = errors.New("Not enough resources")
 var ErrSpaceOccupied = errors.New("Space Occupied")
 var ErrBuildingNotFound = errors.New("No such building found")
+var ErrTownhallLevelLow = errors.New("A higher Town hall level is required for that")
+
+func GetPlayerTownHallLevel(playerID uuid.UUID) (int, error) {
+	query := `
+        SELECT bc.level 
+        FROM player_buildings pb
+        JOIN building_catalog bc ON pb.building_id = bc.id
+        WHERE pb.player_id = $1 AND bc.name = 'TownHall'
+    `
+
+	var townHallLevel int
+	err := database.Db.QueryRow(query, playerID).Scan(&townHallLevel)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, errors.New("town hall not found")
+		}
+		return 0, err
+	}
+
+	return townHallLevel, nil
+}
+
+func GetBuilidingLevelandName(buildingId uuid.UUID) (int, string, error) {
+	query := `SELECT level, name FROM building_catalog WHERE id = $1`
+	var level int
+	var name string
+	err := database.Db.QueryRow(query, buildingId).Scan(&level, &name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, "", errors.New("No such building found")
+		}
+		return 0, "", err
+	}
+
+	return level, name, nil
+}
 
 func NewBuilding(id uuid.UUID, BuildReq dto.BuildRequest) error {
 	var err error
@@ -60,6 +98,25 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildRequest) error {
 	if (gold < costGold) || (elixir < costElixir) {
 		log.Println("Not enouhgt resources")
 		return ErrNotEnoughResouces
+	}
+
+	playerTownhall, err := GetPlayerTownHallLevel(id)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return err
+	}
+
+	query = `SELECT unlock_thall_level FROM building_catalog WHERE id = $1`
+	var unlockThallLevel int
+	err = tx.QueryRow(query, buildingUuid).Scan(&unlockThallLevel)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return err
+	}
+
+	if unlockThallLevel > playerTownhall {
+		log.Println("Town hall level low")
+		return ErrTownhallLevelLow
 	}
 
 	var buildingCount int

@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/google/uuid"
+
 type Player struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -22,4 +24,29 @@ type BuildMoveRequest struct {
 	GridY      int    `json:"grid_y"`
 	IGridX     int    `json:"init_grid_x"`
 	IGridY     int    `json:"init_grid_y"`
+}
+
+type VillageSync struct {
+	Id         uuid.UUID `json:"id"`
+	BuildingID uuid.UUID `json:"building_id"`
+	Name       string    `json:"name"`
+	Level      int       `json:"level"`
+	GridX      int       `json:"grid_x"`
+	GridY      int       `json:"grid_y"`
+}
+type TroopsSync struct {
+	TroopId  uuid.UUID `json:"troop_id"`
+	Name     string    `json:"name"`
+	Level    int       `json:"level"`
+	Quantity int       `json:"quantity"`
+}
+type StatsSync struct {
+	Gold     int `json:"gold"`
+	Elixir   int `json:"elixir"`
+	Trophies int `json:"trophies"`
+}
+type GameDataSyncResponse struct {
+	Stats     StatsSync     `json:"stats"`
+	Buildings []VillageSync `json:"buildings"`
+	Troops    []TroopsSync  `json:"troops"`
 }
