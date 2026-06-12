@@ -120,10 +120,42 @@ func UpgradeStartBuilding(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Town hall level low", http.StatusBadRequest)
 		log.Println("Town hall level low")
 		return
+	} else if err == repository.ErrBuildingNotFound {
+		http.Error(w, "Building not found", http.StatusBadRequest)
+		log.Println("Building not found")
+		return
 	} else if err != nil {
 		http.Error(w, "An Error Occured", http.StatusInternalServerError)
 		log.Println("An Error occured, ", err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func UpgradeFinishBuilding(w http.ResponseWriter, r *http.Request) {
+	var err error
+	BuildReq, parsedUUID, err := initController[dto.BuildUpgradeFinishRequest](w, r)
+	if err == ErrInvalidMethod {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		log.Println("Invalid method")
+		return
+	} else if err != nil {
+		http.Error(w, "An Error Occured", http.StatusInternalServerError)
+		log.Println("An Error occured, ", err)
+		return
+	}
+	err = repository.UpgradeBuildingFinish(parsedUUID, BuildReq)
+	if err == repository.ErrBadRequest {
+		http.Error(w, "Ugrade not finished yet", http.StatusBadRequest)
+		log.Println("Ugrade not finished yet")
+		return
+	} else if err == repository.ErrBuildingNotFound {
+		http.Error(w, "Building not found", http.StatusBadRequest)
+		log.Println("Building not found")
+		return
+	} else if err != nil {
+		http.Error(w, "An Error Occured", http.StatusInternalServerError)
+		log.Println("An Error occured, ", err)
+		return
+	}
 }

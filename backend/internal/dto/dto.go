@@ -18,6 +18,7 @@ type BuildNewRequest struct {
 	GridY      int    `json:"grid_y"`
 }
 type BuildUpgradeStartRequest BuildNewRequest
+type BuildUpgradeFinishRequest BuildNewRequest
 
 type BuildMoveRequest struct {
 	BuildingID string `json:"building_id"`

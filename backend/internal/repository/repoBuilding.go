@@ -15,6 +15,7 @@ var ErrNotEnoughResouces = errors.New("Not enough resources")
 var ErrSpaceOccupied = errors.New("Space Occupied")
 var ErrBuildingNotFound = errors.New("No such building found")
 var ErrTownhallLevelLow = errors.New("A higher Town hall level is required for that")
+var ErrBadRequest = errors.New("Bad request")
 
 func GetPlayerTownHallLevel(playerID uuid.UUID, tx *sql.Tx) (int, error) {
 	query := `
@@ -271,10 +272,57 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 
 	now := time.Now()
 	query = `UPDATE player_buildings SET building_id = $1, built_by = $2, is_built = false WHERE id = $3`
-	_, err = tx.Exec(query, newuuid, now.Add(time.Second*time.Duration(buildTime)), instanceId)
+	result, err := tx.Exec(query, newuuid, now.Add(time.Second*time.Duration(buildTime)), instanceId)
 	if err != nil {
 		log.Println("Error upgrading building:", err)
 		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrBuildingNotFound
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpgradeBuildingFinish(id uuid.UUID, BuildReq dto.BuildUpgradeFinishRequest) error {
+	var err error
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var builtBy time.Time
+	query := `SELECT built_by FROM player_buildings WHERE grid_x = $1 AND grid_y = $2`
+	err = tx.QueryRow(query, BuildReq.GridX, BuildReq.GridY).Scan(&builtBy)
+	if err != nil {
+		return err
+	}
+
+	if builtBy.Compare(time.Now()) > 0 {
+		return ErrBadRequest
+	}
+
+	query = `UPDATE player_buildings SET built_by = NULL, is_built = true WHERE player_id = $1 AND grid_x = $2 AND grid_y = $3`
+	result, err := tx.Exec(query, id, BuildReq.GridX, BuildReq.GridY)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrBuildingNotFound
 	}
 
 	err = tx.Commit()
