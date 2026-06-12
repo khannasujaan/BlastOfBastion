@@ -7,7 +7,7 @@ docker:
 	docker compose up -d
 
 server:
-	go run database/main.go
+	go run backend/main.go
 
 migrate:
 	migrate -path ./backend/internal/database/migrations -database "$(DB_URL)" up

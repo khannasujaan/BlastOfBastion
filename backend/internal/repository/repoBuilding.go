@@ -114,9 +114,9 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildNewRequest) error {
 		return err
 	}
 
-	query = `SELECT unlock_thall_level FROM building_catalog WHERE id = $1`
-	var unlockThallLevel int
-	err = tx.QueryRow(query, buildingUuid).Scan(&unlockThallLevel)
+	query = `SELECT unlock_thall_level, build_time FROM building_catalog WHERE id = $1`
+	var unlockThallLevel, buildTime int
+	err = tx.QueryRow(query, buildingUuid).Scan(&unlockThallLevel, &buildTime)
 	if err != nil {
 		log.Println("Error in fetching Data, ", err)
 		return err
@@ -144,8 +144,8 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildNewRequest) error {
 		return err
 	}
 
-	query = `INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y) VALUES ($1, $2, $3, $4)`
-	_, err = tx.Exec(query, id, buildingUuid, BuildReq.GridX, BuildReq.GridY)
+	query = `INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y, built_by) VALUES ($1, $2, $3, $4, $5)`
+	_, err = tx.Exec(query, id, buildingUuid, BuildReq.GridX, BuildReq.GridY, time.Now().Add(time.Second*time.Duration(buildTime)))
 	if err != nil {
 		log.Println("Error inserting building:", err)
 		return err
