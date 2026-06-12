@@ -95,10 +95,8 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildNewRequest) error {
 	}
 	query = `SELECT cost_gold, cost_elixir FROM building_catalog WHERE id = $1`
 	var costGold, costElixir int
-	buildingUuid, err := uuid.Parse(BuildReq.BuildingID)
-	if err != nil {
-		return err
-	}
+	buildingUuid := BuildReq.BuildingID
+
 	err = tx.QueryRow(query, buildingUuid).Scan(&costGold, &costElixir)
 	if err != nil {
 		log.Println("Error in fetching Data, ", err)
@@ -217,10 +215,7 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 	}
 	defer tx.Rollback()
 
-	buildingIDuuid, err := uuid.Parse(BuildReq.BuildingID)
-	if err != nil {
-		return err
-	}
+	buildingIDuuid := BuildReq.BuildingID
 
 	level, name, err := GetBuilidingLevelandName(buildingIDuuid, tx)
 	if err != nil {

@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
@@ -9,6 +11,20 @@ import (
 )
 
 var ErrMoreThanHousingSpace = errors.New("Exceeds maximum housing space")
+
+func GetTroopLevelandName(troopId uuid.UUID, tx *sql.Tx) (int, string, error) {
+	query := `SELECT level, name FROM troops_catalog WHERE id = $1`
+	var level int
+	var name string
+	err := tx.QueryRow(query, troopId).Scan(&level, &name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, "", errors.New("No such troop found")
+		}
+		return 0, "", err
+	}
+	return level, name, nil
+}
 
 func TrainTroop(id uuid.UUID, TroopReq dto.TroopTrainRequest) error {
 	tx, err := database.Db.Begin()
@@ -76,4 +92,70 @@ func TrainTroop(id uuid.UUID, TroopReq dto.TroopTrainRequest) error {
 		}
 	}
 	return tx.Commit()
+}
+
+func UpgradeTroop(id uuid.UUID, TroopReq dto.TroopUpgradeRequest) error {
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	level, name, err := GetTroopLevelandName(TroopReq.TroopId, tx)
+	if err != nil {
+		return err
+	}
+
+	var unlockThallLevel, costElixir int
+	query := `SELECT unlock_thall_level, cost_elixir FROM troops_catalog WHERE name = $1 AND level = $2`
+	err = tx.QueryRow(query, name, level+1).Scan(&unlockThallLevel, &costElixir)
+	if err != nil {
+		return err
+	}
+	currentTownhall, err := GetPlayerTownHallLevel(id, tx)
+	if err != nil {
+		return err
+	}
+
+	if unlockThallLevel > currentTownhall {
+		return ErrTownhallLevelLow
+	}
+
+	_, elixir, err := GetPlayerGoldandElixir(tx, id)
+	if err != nil {
+		return err
+	}
+	if elixir < costElixir {
+		return ErrNotEnoughResouces
+	}
+
+	query = `UPDATE player_stats SET elixir = elixir - $1 WHERE player_id = $2`
+	_, err = tx.Exec(query, costElixir, id)
+	if err != nil {
+		log.Println("Error deducting resources:", err)
+		return err
+	}
+
+	// CHANGE THE LEVEL OF TROOP IN PLAYER_STATS
+
+	// query = `UPDATE player_army SET `
+	// result, err := tx.Exec(query)
+	// if err != nil {
+	// 	log.Println("Error upgrading building:", err)
+	// 	return err
+	// }
+	// rowsAffected, err := result.RowsAffected()
+	// if err != nil {
+	// 	return err
+	// }
+	// if rowsAffected == 0 {
+	// 	return ErrTroopNotFound
+	// }
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

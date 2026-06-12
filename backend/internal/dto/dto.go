@@ -13,19 +13,19 @@ type LoggingResponse struct {
 }
 
 type BuildNewRequest struct {
-	BuildingID string `json:"building_id"`
-	GridX      int    `json:"grid_x"`
-	GridY      int    `json:"grid_y"`
+	BuildingID uuid.UUID `json:"building_id"`
+	GridX      int       `json:"grid_x"`
+	GridY      int       `json:"grid_y"`
 }
 type BuildUpgradeStartRequest BuildNewRequest
 type BuildUpgradeFinishRequest BuildNewRequest
 
 type BuildMoveRequest struct {
-	BuildingID string `json:"building_id"`
-	GridX      int    `json:"grid_x"`
-	GridY      int    `json:"grid_y"`
-	IGridX     int    `json:"init_grid_x"`
-	IGridY     int    `json:"init_grid_y"`
+	BuildingID uuid.UUID `json:"building_id"`
+	GridX      int       `json:"grid_x"`
+	GridY      int       `json:"grid_y"`
+	IGridX     int       `json:"init_grid_x"`
+	IGridY     int       `json:"init_grid_y"`
 }
 
 type VillageSync struct {
@@ -59,4 +59,8 @@ type TroopRequest struct {
 }
 type TroopTrainRequest struct {
 	Troops []TroopRequest `json:"troops"`
+}
+
+type TroopUpgradeRequest struct {
+	TroopId uuid.UUID `json:"troop_id"`
 }

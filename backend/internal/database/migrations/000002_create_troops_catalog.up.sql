@@ -10,5 +10,6 @@ CREATE TABLE troops_catalog (
     speed SMALLINT NOT NULL DEFAULT 10,
     unlock_thall_level SMALLINT NOT NULL DEFAULT 1,
     range SMALLINT NOT NULL DEFAULT 1,
+    cost_elixir BIGINT NOT NULL,
     UNIQUE(name, level)
 );
