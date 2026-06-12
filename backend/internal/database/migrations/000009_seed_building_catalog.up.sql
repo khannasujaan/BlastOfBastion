@@ -1,8 +1,8 @@
 INSERT INTO building_catalog (id, name, type, level, base_health, unlock_thall_level, cost_gold, cost_elixir, build_time) VALUES
-    ('e2884f17-8356-4e7a-bb95-42f5c22d5919', 'TownHall', NULL, 1, 400,  1, 1,     0, 0),
-    ('86a4d88c-2a79-4e43-baa8-c3b97f082e6f', 'TownHall', NULL, 2, 800,  2, 1000,  0, 10),
-    ('e73c3769-ac4e-421b-bbf6-378f3b72d72f', 'TownHall', NULL, 3, 1600, 3, 4000,  0, 1800),
-    ('5ea753cf-9df2-42a0-88ea-e5b5956fe421', 'TownHall', NULL, 4, 2000, 4, 25000, 0, 10800),
+    ('e2884f17-8356-4e7a-bb95-42f5c22d5919', 'TownHall', 'storage', 1, 400,  1, 1,     0, 0),
+    ('86a4d88c-2a79-4e43-baa8-c3b97f082e6f', 'TownHall', 'storage', 2, 800,  1, 1000,  0, 10),
+    ('e73c3769-ac4e-421b-bbf6-378f3b72d72f', 'TownHall', 'storage', 3, 1600, 2, 4000,  0, 1800),
+    ('5ea753cf-9df2-42a0-88ea-e5b5956fe421', 'TownHall', 'storage', 4, 2000, 3, 25000, 0, 10800),
 
     ('bd85d5b5-f8cd-4396-aad7-0d8163103c36', 'ElixirColl', 'resGen',  1, 75,  1, 150,  0, 5),
     ('2f6ecbbc-8020-4e3a-bd39-1fb86dff7050', 'ElixirColl', 'resGen',  2, 150, 2, 300,  0, 15),

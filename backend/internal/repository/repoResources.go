@@ -66,9 +66,23 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 		maxCapacity += stor
 	}
 
+	storQuery = `
+	SELECT rs.storage
+	FROM resource_storage rs 
+	JOIN player_buildings pb ON pb.building_id = rs.building_id
+	JOIN building_catalog bc ON pb.building_id = bc.id
+	WHERE player_id = $1 AND bc.name = 'TownHall'
+	`
+	var townhallStor int
+	err = tx.QueryRow(storQuery, id).Scan(&townhallStor)
+	if err != nil {
+		return err
+	}
+	maxCapacity += townhallStor
+
 	query := `
 	SELECT rg.gen_per_hour, rg.storage
-	FROM resource_gen rg 
+	FROM resources_gen rg 
 	JOIN player_buildings pb ON pb.building_id = rg.building_id
 	JOIN building_catalog bc ON pb.building_id = bc.id
 	WHERE pb.player_id = $1 AND bc.name = $2

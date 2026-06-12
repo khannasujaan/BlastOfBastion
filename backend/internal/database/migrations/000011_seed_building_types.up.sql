@@ -29,5 +29,9 @@ INSERT INTO resource_storage (building_id, storage) VALUES
     ('323cf75f-c33f-4374-8eb0-dc17466438db', 3000),
     ('df688905-7d6e-4ae7-92b1-e522d145e0e6', 6000),
     ('88940be9-28d9-4fed-b78a-08b54ffd4f68', 12000),
+    ('e2884f17-8356-4e7a-bb95-42f5c22d5919', 1000),
+    ('86a4d88c-2a79-4e43-baa8-c3b97f082e6f', 2500),
+    ('e73c3769-ac4e-421b-bbf6-378f3b72d72f', 10000),
+    ('5ea753cf-9df2-42a0-88ea-e5b5956fe421', 50000),
     ('1acb71d4-be48-4e9f-ae6e-90ba7aa4ea81', 20),
     ('cbc23d6b-1728-495b-9d33-0039064c2ddb', 30);
