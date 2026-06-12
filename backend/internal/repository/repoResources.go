@@ -71,7 +71,7 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 	FROM resource_storage rs 
 	JOIN player_buildings pb ON pb.building_id = rs.building_id
 	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE player_id = $1 AND bc.name = 'TownHall'
+	WHERE pb.player_id = $1 AND bc.name = 'TownHall'
 	`
 	var townhallStor int
 	err = tx.QueryRow(storQuery, id).Scan(&townhallStor)

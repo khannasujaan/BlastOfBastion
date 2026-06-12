@@ -29,9 +29,6 @@ INSERT INTO building_catalog (id, name, type, level, base_health, unlock_thall_l
     ('6fa5fec1-0187-4a3d-a7db-1a6fea3bc1f3', 'Barrack', NULL, 3, 250, 3, 0, 2500, 120),
     ('930ff50b-4c25-4458-8459-c380678d68c8', 'Barrack', NULL, 4, 300, 4, 0, 5000, 1800),
 
-    ('d963cbb5-6f13-446a-bb49-3ae4cfa18820', 'Laboratory', NULL, 1, 500, 3, 0, 5000,  60),
-    ('3c5783b9-58c4-46c6-bfef-4d4664f8026a', 'Laboratory', NULL, 2, 550, 4, 0, 25000, 1800),
-
     ('09135b20-9b85-4637-abb8-32fc1d486752', 'Cannon', 'defense', 1, 300, 1, 250,   0, 5),
     ('e70e47e3-0a43-429b-a79a-a1d1a059f5b2', 'Cannon', 'defense', 2, 360, 2, 1000,  0, 30),
     ('8c10ff6e-6fdc-4223-a90e-90ebc6bc7ae8', 'Cannon', 'defense', 3, 420, 3, 4000,  0, 120),

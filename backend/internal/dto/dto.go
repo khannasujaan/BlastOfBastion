@@ -52,3 +52,11 @@ type GameDataSyncResponse struct {
 	Buildings []VillageSync `json:"buildings"`
 	Troops    []TroopsSync  `json:"troops"`
 }
+
+type TroopRequest struct {
+	TroopId  uuid.UUID `json:"troop_id"`
+	Quantity int       `json:"quantity"`
+}
+type TroopTrainRequest struct {
+	Troops []TroopRequest `json:"troops"`
+}
