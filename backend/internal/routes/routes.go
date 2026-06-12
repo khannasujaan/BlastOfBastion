@@ -22,5 +22,7 @@ func Routes() {
 	http.HandleFunc("/village/building/move", middleware.VerifyJWT(controller.MoveBuiling))
 	http.HandleFunc("/village/building/upgrade-start", middleware.VerifyJWT(controller.UpgradeStartBuilding))
 	http.HandleFunc("/village/building/upgrade-finish", middleware.VerifyJWT(controller.UpgradeFinishBuilding))
+	http.HandleFunc("/village/collect/gold", middleware.VerifyJWT(controller.CollectGold()))
+	http.HandleFunc("/village/collect/elixir", middleware.VerifyJWT(controller.CollectElixir()))
 
 }

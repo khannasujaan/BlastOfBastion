@@ -84,7 +84,7 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildNewRequest) error {
 			log.Println("Error in fetching Data, ", err)
 			return err
 		}
-		if (Abs(BuildReq.GridX-x) < 2) && (Abs(BuildReq.GridY-y) < 2) {
+		if (Abs(BuildReq.GridX-x) < 3) && (Abs(BuildReq.GridY-y) < 3) && (BuildReq.GridX >= 1) && (BuildReq.GridY >= 1) && (BuildReq.GridX <= 29) && (BuildReq.GridY <= 29) {
 			return ErrSpaceOccupied
 		}
 	}
@@ -182,7 +182,7 @@ func MoveBuilding(id uuid.UUID, BuildReq dto.BuildMoveRequest) error {
 			log.Println("Error in fetching Data, ", err)
 			return err
 		}
-		if !((BuildReq.IGridX == x) && (BuildReq.IGridY == y)) && (Abs(BuildReq.GridX-x) < 2) && (Abs(BuildReq.GridY-y) < 2) {
+		if !((BuildReq.IGridX == x) && (BuildReq.IGridY == y)) && (Abs(BuildReq.GridX-x) < 3) && (Abs(BuildReq.GridY-y) < 3) && (BuildReq.GridX >= 1) && (BuildReq.GridY >= 1) && (BuildReq.GridX <= 29) && (BuildReq.GridY <= 29) {
 			return ErrSpaceOccupied
 		}
 	}

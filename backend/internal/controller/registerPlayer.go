@@ -110,7 +110,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `
-	SELECT id, gold, elixir, attacks_won, defenses_won, total_attacks, total_defends, trophies, last_attacked_time, last_collected_gold, last_collected_elixir 
+	SELECT player_id, gold, elixir, attacks_won, defenses_won, total_attacks, total_defends, trophies, last_attacked_time, last_collected_gold, last_collected_elixir 
 	FROM player_stats WHERE player_id = $1`
 	err = database.Db.QueryRow(query, parsedUUID).Scan(
 		&selectedPlayer.Id,
