@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
 	"log"
 	"time"
@@ -10,6 +11,51 @@ import (
 )
 
 var ErrPlayerNotFound = errors.New("Player not found")
+var ErrUnknownResource = errors.New("Unknown resource")
+
+func GetPlayerMaxStorageResource(id uuid.UUID, storName string, tx *sql.Tx) (int, error) {
+	if !((storName == "GoldMine") || (storName == "ElixirColl")) {
+		return 0, ErrUnknownResource
+	}
+
+	maxCapacity := 0
+	storQuery := `
+	SELECT rs.storage
+	FROM resource_storage rs 
+	JOIN player_buildings pb ON pb.building_id = rs.building_id
+	JOIN building_catalog bc ON pb.building_id = bc.id
+	WHERE player_id = $1 AND bc.name = $2
+	`
+	rows, err := tx.Query(storQuery, id, storName)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var stor int
+		err = rows.Scan(&stor)
+		if err != nil {
+			log.Println("Error in fetching Data, ", err)
+			return 0, err
+		}
+		maxCapacity += stor
+	}
+
+	storQuery = `
+	SELECT rs.storage
+	FROM resource_storage rs 
+	JOIN player_buildings pb ON pb.building_id = rs.building_id
+	JOIN building_catalog bc ON pb.building_id = bc.id
+	WHERE pb.player_id = $1 AND bc.name = 'TownHall'
+	`
+	var townhallStor int
+	err = tx.QueryRow(storQuery, id).Scan(&townhallStor)
+	if err != nil {
+		return 0, err
+	}
+	maxCapacity += townhallStor
+	return maxCapacity, nil
+}
 
 func CollectResource(id uuid.UUID, resourceType string) error {
 	var err error
@@ -30,7 +76,7 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 		storName = "ElixirStor"
 		mineName = "ElixirColl"
 	} else {
-		return errors.New("invalid resource type")
+		return ErrUnknownResource
 	}
 	var currentAmount int
 	var lastCollected *time.Time
@@ -43,42 +89,7 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 		lastCollected = &now
 	}
 
-	maxCapacity := 0
-	storQuery := `
-	SELECT rs.storage
-	FROM resource_storage rs 
-	JOIN player_buildings pb ON pb.building_id = rs.building_id
-	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE player_id = $1 AND bc.name = $2
-	`
-	rows, err := tx.Query(storQuery, id, storName)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var stor int
-		err = rows.Scan(&stor)
-		if err != nil {
-			log.Println("Error in fetching Data, ", err)
-			return err
-		}
-		maxCapacity += stor
-	}
-
-	storQuery = `
-	SELECT rs.storage
-	FROM resource_storage rs 
-	JOIN player_buildings pb ON pb.building_id = rs.building_id
-	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE pb.player_id = $1 AND bc.name = 'TownHall'
-	`
-	var townhallStor int
-	err = tx.QueryRow(storQuery, id).Scan(&townhallStor)
-	if err != nil {
-		return err
-	}
-	maxCapacity += townhallStor
+	maxCapacity, _ := GetPlayerMaxStorageResource(id, storName, tx)
 
 	query := `
 	SELECT rg.gen_per_hour, rg.storage
@@ -87,7 +98,7 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 	JOIN building_catalog bc ON pb.building_id = bc.id
 	WHERE pb.player_id = $1 AND bc.name = $2
 	`
-	rows, err = tx.Query(query, id, mineName)
+	rows, err := tx.Query(query, id, mineName)
 	if err != nil {
 		return err
 	}

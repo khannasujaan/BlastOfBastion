@@ -23,6 +23,14 @@ func GetGameData(id uuid.UUID) (*dto.GameDataSyncResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	playerStats.MaxGold, err = GetPlayerMaxStorageResource(id, "GoldMine", tx)
+	if err != nil {
+		return nil, err
+	}
+	playerStats.MaxElixir, err = GetPlayerMaxStorageResource(id, "ElixirColl", tx)
+	if err != nil {
+		return nil, err
+	}
 
 	query = `
         SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name 

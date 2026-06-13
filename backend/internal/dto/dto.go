@@ -43,9 +43,11 @@ type TroopsSync struct {
 	Quantity int       `json:"quantity"`
 }
 type StatsSync struct {
-	Gold     int `json:"gold"`
-	Elixir   int `json:"elixir"`
-	Trophies int `json:"trophies"`
+	Gold      int `json:"gold"`
+	Elixir    int `json:"elixir"`
+	MaxGold   int `json:"max_gold"`
+	MaxElixir int `json:"max_elixir"`
+	Trophies  int `json:"trophies"`
 }
 type GameDataSyncResponse struct {
 	Stats     StatsSync     `json:"stats"`
