@@ -12,7 +12,7 @@ import (
 
 var ErrMoreThanHousingSpace = errors.New("Exceeds maximum housing space")
 
-func GetTroopLevelandName(troopId uuid.UUID, tx *sql.Tx) (int, string, error) {
+func GetTroopLevelandName(troopId int, tx *sql.Tx) (int, string, error) {
 	query := `SELECT level, name FROM troops_catalog WHERE id = $1`
 	var level int
 	var name string
@@ -38,8 +38,7 @@ func TrainTroop(id uuid.UUID, TroopReq dto.TroopTrainRequest) error {
 	SELECT rs.storage
 	FROM resource_storage rs 
 	JOIN player_buildings pb ON pb.building_id = rs.building_id
-	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE pb.player_id = $1 AND bc.name = 'ArmyCamp'
+	WHERE pb.player_id = $1 AND pb.building_id/10 = 303
 	`
 	rows, err := tx.Query(query, id)
 	if err != nil {
@@ -101,14 +100,9 @@ func UpgradeTroop(id uuid.UUID, TroopReq dto.TroopUpgradeRequest) error {
 	}
 	defer tx.Rollback()
 
-	level, name, err := GetTroopLevelandName(TroopReq.TroopId, tx)
-	if err != nil {
-		return err
-	}
-
 	var unlockThallLevel, costElixir int
-	query := `SELECT unlock_thall_level, cost_elixir FROM troops_catalog WHERE name = $1 AND level = $2`
-	err = tx.QueryRow(query, name, level+1).Scan(&unlockThallLevel, &costElixir)
+	query := `SELECT unlock_thall_level, cost_elixir FROM troops_catalog WHERE id = $1`
+	err = tx.QueryRow(query, TroopReq.TroopId+1).Scan(&unlockThallLevel, &costElixir)
 	if err != nil {
 		return err
 	}

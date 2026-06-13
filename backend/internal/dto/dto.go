@@ -13,34 +13,34 @@ type LoggingResponse struct {
 }
 
 type BuildNewRequest struct {
-	BuildingID uuid.UUID `json:"building_id"`
-	GridX      int       `json:"grid_x"`
-	GridY      int       `json:"grid_y"`
+	BuildingID int `json:"building_id"`
+	GridX      int `json:"grid_x"`
+	GridY      int `json:"grid_y"`
 }
 type BuildUpgradeStartRequest BuildNewRequest
 type BuildUpgradeFinishRequest BuildNewRequest
 
 type BuildMoveRequest struct {
-	BuildingID uuid.UUID `json:"building_id"`
-	GridX      int       `json:"grid_x"`
-	GridY      int       `json:"grid_y"`
-	IGridX     int       `json:"init_grid_x"`
-	IGridY     int       `json:"init_grid_y"`
+	BuildingID int `json:"building_id"`
+	GridX      int `json:"grid_x"`
+	GridY      int `json:"grid_y"`
+	IGridX     int `json:"init_grid_x"`
+	IGridY     int `json:"init_grid_y"`
 }
 
 type VillageSync struct {
-	Id         int       `json:"id"`
-	BuildingID uuid.UUID `json:"building_id"`
-	Name       string    `json:"name"`
-	Level      int       `json:"level"`
-	GridX      int       `json:"grid_x"`
-	GridY      int       `json:"grid_y"`
+	Id         int    `json:"id"`
+	BuildingID int    `json:"building_id"`
+	Name       string `json:"name"`
+	Level      int    `json:"level"`
+	GridX      int    `json:"grid_x"`
+	GridY      int    `json:"grid_y"`
 }
 type TroopsSync struct {
-	TroopId  uuid.UUID `json:"troop_id"`
-	Name     string    `json:"name"`
-	Level    int       `json:"level"`
-	Quantity int       `json:"quantity"`
+	TroopId  int    `json:"troop_id"`
+	Name     string `json:"name"`
+	Level    int    `json:"level"`
+	Quantity int    `json:"quantity"`
 }
 type StatsSync struct {
 	Gold      int `json:"gold"`
@@ -56,15 +56,15 @@ type GameDataSyncResponse struct {
 }
 
 type TroopRequest struct {
-	TroopId  uuid.UUID `json:"troop_id"`
-	Quantity int       `json:"quantity"`
+	TroopId  int `json:"troop_id"`
+	Quantity int `json:"quantity"`
 }
 type TroopTrainRequest struct {
 	Troops []TroopRequest `json:"troops"`
 }
 
 type TroopUpgradeRequest struct {
-	TroopId uuid.UUID `json:"troop_id"`
+	TroopId int `json:"troop_id"`
 }
 
 type BattleResponse struct {

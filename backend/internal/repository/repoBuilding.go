@@ -22,7 +22,7 @@ func GetPlayerTownHallLevel(playerID uuid.UUID, tx *sql.Tx) (int, error) {
         SELECT bc.level 
         FROM player_buildings pb
         JOIN building_catalog bc ON pb.building_id = bc.id
-        WHERE pb.player_id = $1 AND bc.name = 'TownHall'
+        WHERE pb.player_id = $1 AND bc.id/10 = 300
     `
 
 	var townHallLevel int
@@ -38,7 +38,7 @@ func GetPlayerTownHallLevel(playerID uuid.UUID, tx *sql.Tx) (int, error) {
 	return townHallLevel, nil
 }
 
-func GetBuilidingLevelandName(buildingId uuid.UUID, tx *sql.Tx) (int, string, error) {
+func GetBuilidingLevelandName(buildingId int, tx *sql.Tx) (int, string, error) {
 	query := `SELECT level, name FROM building_catalog WHERE id = $1`
 	var level int
 	var name string
@@ -215,13 +215,6 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 	}
 	defer tx.Rollback()
 
-	buildingIDuuid := BuildReq.BuildingID
-
-	level, name, err := GetBuilidingLevelandName(buildingIDuuid, tx)
-	if err != nil {
-		return err
-	}
-
 	query := `SELECT id FROM player_buildings WHERE player_id = $1 AND grid_x = $2 AND grid_y = $3`
 	var instanceId int
 	err = tx.QueryRow(query, id, BuildReq.GridX, BuildReq.GridY).Scan(&instanceId)
@@ -230,10 +223,9 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 		return err
 	}
 
-	query = `SELECT id, unlock_thall_level, cost_gold, cost_elixir, build_time FROM building_catalog WHERE name = $1 AND level = $2`
-	var newuuid uuid.UUID
-	var tHallNeedLevel, costGold, costElixir, buildTime int
-	err = tx.QueryRow(query, name, level+1).Scan(&newuuid, &tHallNeedLevel, &costGold, &costElixir, &buildTime)
+	query = `SELECT id, unlock_thall_level, cost_gold, cost_elixir, build_time FROM building_catalog WHERE id = $1`
+	var newuuid, tHallNeedLevel, costGold, costElixir, buildTime int
+	err = tx.QueryRow(query, BuildReq.BuildingID+1).Scan(&newuuid, &tHallNeedLevel, &costGold, &costElixir, &buildTime)
 	if err != nil {
 		log.Println("Can't upgrade", err)
 		return ErrTownhallLevelLow
@@ -297,8 +289,8 @@ func UpgradeBuildingFinish(id uuid.UUID, BuildReq dto.BuildUpgradeFinishRequest)
 	defer tx.Rollback()
 
 	var builtBy time.Time
-	query := `SELECT built_by FROM player_buildings WHERE grid_x = $1 AND grid_y = $2`
-	err = tx.QueryRow(query, BuildReq.GridX, BuildReq.GridY).Scan(&builtBy)
+	query := `SELECT built_by FROM player_buildings WHERE grid_x = $1 AND grid_y = $2 AND player_id = $3`
+	err = tx.QueryRow(query, BuildReq.GridX, BuildReq.GridY, id).Scan(&builtBy)
 	if err != nil {
 		return err
 	}

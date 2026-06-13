@@ -1,9 +1,7 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 CREATE TYPE b_type AS ENUM ('defense', 'resGen', 'storage');
 
 CREATE TABLE building_catalog (
-    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id INT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     type b_type,
     level SMALLINT NOT NULL DEFAULT 1,

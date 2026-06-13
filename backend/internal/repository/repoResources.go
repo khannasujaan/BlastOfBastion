@@ -13,20 +13,24 @@ import (
 var ErrPlayerNotFound = errors.New("Player not found")
 var ErrUnknownResource = errors.New("Unknown resource")
 
-func GetPlayerMaxStorageResource(id uuid.UUID, storName string, tx *sql.Tx) (int, error) {
-	if !((storName == "GoldMine") || (storName == "ElixirColl")) {
+func GetPlayerMaxStorageResource(id uuid.UUID, resource string, tx *sql.Tx) (int, error) {
+	var idtemp int
+	switch resource {
+	case "gold":
+		idtemp = 301
+	case "elixir":
+		idtemp = 302
+	case "default":
 		return 0, ErrUnknownResource
 	}
-
 	maxCapacity := 0
 	storQuery := `
 	SELECT rs.storage
 	FROM resource_storage rs 
 	JOIN player_buildings pb ON pb.building_id = rs.building_id
-	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE player_id = $1 AND bc.name = $2
+	WHERE player_id = $1 AND pb.building_id/10 = $2
 	`
-	rows, err := tx.Query(storQuery, id, storName)
+	rows, err := tx.Query(storQuery, id, idtemp)
 	if err != nil {
 		return 0, err
 	}
@@ -46,7 +50,7 @@ func GetPlayerMaxStorageResource(id uuid.UUID, storName string, tx *sql.Tx) (int
 	FROM resource_storage rs 
 	JOIN player_buildings pb ON pb.building_id = rs.building_id
 	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE pb.player_id = $1 AND bc.name = 'TownHall'
+	WHERE pb.player_id = $1 AND pb.building_id/10 = 300
 	`
 	var townhallStor int
 	err = tx.QueryRow(storQuery, id).Scan(&townhallStor)
@@ -64,18 +68,18 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 		return err
 	}
 	defer tx.Rollback()
-	var statQuery, updateQuery, storName, mineName string
-	if resourceType == "gold" {
+	var statQuery, updateQuery string
+	var mineid int
+	switch resourceType {
+	case "gold":
 		statQuery = `SELECT gold, last_collected_gold FROM player_stats WHERE player_id = $1`
 		updateQuery = `UPDATE player_stats SET gold = $1, last_collected_gold = $2 WHERE player_id = $3`
-		storName = "GoldStor"
-		mineName = "GoldMine"
-	} else if resourceType == "elixir" {
+		mineid = 202
+	case "elixir":
 		statQuery = `SELECT elixir, last_collected_elixir FROM player_stats WHERE player_id = $1`
 		updateQuery = `UPDATE player_stats SET elixir = $1, last_collected_elixir = $2 WHERE player_id = $3`
-		storName = "ElixirStor"
-		mineName = "ElixirColl"
-	} else {
+		mineid = 201
+	case "default":
 		return ErrUnknownResource
 	}
 	var currentAmount int
@@ -89,16 +93,16 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 		lastCollected = &now
 	}
 
-	maxCapacity, _ := GetPlayerMaxStorageResource(id, storName, tx)
+	maxCapacity, _ := GetPlayerMaxStorageResource(id, resourceType, tx)
 
 	query := `
 	SELECT rg.gen_per_hour, rg.storage
 	FROM resources_gen rg 
 	JOIN player_buildings pb ON pb.building_id = rg.building_id
 	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE pb.player_id = $1 AND bc.name = $2
+	WHERE pb.player_id = $1 AND pb.building_id/10 = $2
 	`
-	rows, err := tx.Query(query, id, mineName)
+	rows, err := tx.Query(query, id, mineid)
 	if err != nil {
 		return err
 	}

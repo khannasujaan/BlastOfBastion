@@ -1,7 +1,5 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 CREATE TABLE troops_catalog (
-    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id INT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     damage SMALLINT NOT NULL DEFAULT 0,
     health SMALLINT NOT NULL DEFAULT 0,
