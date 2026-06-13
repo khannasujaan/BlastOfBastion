@@ -14,3 +14,5 @@ CREATE TABLE player_stats (
     CONSTRAINT check_logical_attacks CHECK (attacks_won <= total_attacks),
     CONSTRAINT check_logical_defenses CHECK (defenses_won <= total_defends)
 );
+
+CREATE INDEX idx_player_stats_trophies ON player_stats(trophies);

@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS troops_catalog
+DROP TABLE IF EXISTS troops_catalog;
