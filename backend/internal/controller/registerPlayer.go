@@ -40,6 +40,9 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if err == repository.ErrUsernameWasTaken {
 		http.Error(w, "Username was taken", http.StatusBadRequest)
 		return
+	} else if err != nil {
+		http.Error(w, "An Error Occured", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)

@@ -18,11 +18,11 @@ func main() {
 
 	database.ConnectToDatabase()
 	log.Println("Connected to database successfully")
-	routes.Routes()
+	corsMux := routes.Routes()
 
 	port := os.Getenv("PORT")
 	log.Println("Loading Server at PORT", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, corsMux); err != nil {
 		log.Fatal("Error in Server loading")
 	}
 }

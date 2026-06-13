@@ -8,24 +8,29 @@ import (
 	"github.com/khannasujaan/BlastOfBastion/internal/middleware"
 )
 
-func Routes() {
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+func Routes() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Server is healthy")
 	})
 
-	http.HandleFunc("/register", controller.HandleRegister)
-	http.HandleFunc("/login", controller.HandleLogging)
+	mux.HandleFunc("/register", controller.HandleRegister)
+	mux.HandleFunc("/login", controller.HandleLogging)
 
-	http.HandleFunc("/me", middleware.VerifyJWT(controller.GetProfile))
-	http.HandleFunc("/village/sync", middleware.VerifyJWT(controller.GetGameData))
-	http.HandleFunc("/village/building/new", middleware.VerifyJWT(controller.NewBuilding))
-	http.HandleFunc("/village/building/move", middleware.VerifyJWT(controller.MoveBuiling))
-	http.HandleFunc("/village/building/upgrade-start", middleware.VerifyJWT(controller.UpgradeStartBuilding))
-	http.HandleFunc("/village/building/upgrade-finish", middleware.VerifyJWT(controller.UpgradeFinishBuilding))
-	http.HandleFunc("/village/collect/gold", middleware.VerifyJWT(controller.CollectGold()))
-	http.HandleFunc("/village/collect/elixir", middleware.VerifyJWT(controller.CollectElixir()))
-	http.HandleFunc("/village/troop/train", middleware.VerifyJWT(controller.TrainTroop))
-	http.HandleFunc("/village/troop/upgrade", middleware.VerifyJWT(controller.UpgradeTroop))
-	http.HandleFunc("/battle/matchmake", middleware.VerifyJWT(controller.Matchmaking))
+	mux.HandleFunc("/me", middleware.VerifyJWT(controller.GetProfile))
+	mux.HandleFunc("/village/sync", middleware.VerifyJWT(controller.GetGameData))
+	mux.HandleFunc("/village/building/new", middleware.VerifyJWT(controller.NewBuilding))
+	mux.HandleFunc("/village/building/move", middleware.VerifyJWT(controller.MoveBuiling))
+	mux.HandleFunc("/village/building/upgrade-start", middleware.VerifyJWT(controller.UpgradeStartBuilding))
+	mux.HandleFunc("/village/building/upgrade-finish", middleware.VerifyJWT(controller.UpgradeFinishBuilding))
+	mux.HandleFunc("/village/collect/gold", middleware.VerifyJWT(controller.CollectGold()))
+	mux.HandleFunc("/village/collect/elixir", middleware.VerifyJWT(controller.CollectElixir()))
+	mux.HandleFunc("/village/troop/train", middleware.VerifyJWT(controller.TrainTroop))
+	mux.HandleFunc("/village/troop/upgrade", middleware.VerifyJWT(controller.UpgradeTroop))
+	mux.HandleFunc("/battle/matchmake", middleware.VerifyJWT(controller.Matchmaking))
+
+	corsMux := middleware.EnableCORS(mux)
+	loggedMux := middleware.RequestLogger(corsMux)
+	return loggedMux
 
 }

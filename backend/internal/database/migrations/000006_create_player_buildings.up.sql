@@ -6,7 +6,9 @@ CREATE TABLE player_buildings (
     grid_y SMALLINT NOT NULL,
     built_by TIMESTAMPTZ,
     is_built BOOLEAN NOT NULL DEFAULT false,
-    UNIQUE(player_id, grid_x, grid_y)
+    UNIQUE(player_id, grid_x, grid_y),
+    CONSTRAINT check_grid_x CHECK (grid_x BETWEEN 1 AND 29),
+    CONSTRAINT check_grid_y CHECK (grid_y BETWEEN 1 AND 29)
 );
 
 CREATE INDEX idx_player_buildings_p_id ON player_buildings(player_id);

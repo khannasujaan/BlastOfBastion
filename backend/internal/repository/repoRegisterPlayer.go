@@ -52,7 +52,7 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 	var savedId uuid.UUID
 	err = tx.QueryRow("INSERT INTO players (username, password_hash) VALUES ($1, $2) RETURNING id", newPlayer.Username, newPlayer.Password).Scan(&savedId)
 	if err != nil {
-		log.Println("Couldn't insert data in database, Error:", err)
+		log.Println("Couldn't insert data in database,", err)
 		return uuid.Nil, err
 	}
 
@@ -64,11 +64,9 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 
 	queryClan := `
 	INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y, built_by, is_built) VALUES
-	($1, 'e2884f17-8356-4e7a-bb95-42f5c22d5919', 15, 15, NULL, true),
-	($1, 'bd85d5b5-f8cd-4396-aad7-0d8163103c36', 15, 18, NULL, true),
-	($1, '512ef74f-2a4a-4ccc-93ef-e483634154c3', 15, 12, NULL, true),
-	($1, '6de702e0-d5de-4224-939a-83e0c207e455', 12, 15, NULL, true),
-	($1, '09135b20-9b85-4637-abb8-32fc1d486752', 18, 15, NULL, true);
+	($1, 3001, 15, 15, NULL, true),
+	($1, 2011, 15, 18, NULL, true),
+	($1, 2021, 15, 12, NULL, true);
 	`
 
 	_, err = tx.Exec(queryClan, savedId)
