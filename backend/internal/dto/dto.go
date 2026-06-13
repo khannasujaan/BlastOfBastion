@@ -64,3 +64,8 @@ type TroopTrainRequest struct {
 type TroopUpgradeRequest struct {
 	TroopId uuid.UUID `json:"troop_id"`
 }
+
+type BattleResponse struct {
+	Amount    int         `json:"amount"`
+	Opponents []uuid.UUID `json:"opponents"`
+}
