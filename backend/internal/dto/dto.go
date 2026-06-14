@@ -55,6 +55,10 @@ type GameDataSyncResponse struct {
 	Troops    []TroopsSync  `json:"troops"`
 }
 
+type ResourceCollectedResponse struct {
+	Change int `json:"change"`
+}
+
 type TroopRequest struct {
 	TroopId  int `json:"troop_id"`
 	Quantity int `json:"quantity"`

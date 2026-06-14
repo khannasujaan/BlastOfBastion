@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -38,7 +39,7 @@ func CollectResource(w http.ResponseWriter, r *http.Request, resource string) {
 		return
 	}
 
-	err = repository.CollectResource(id, resource)
+	response, err := repository.CollectResource(id, resource)
 	if err == repository.ErrPlayerNotFound {
 		http.Error(w, "Player not found", http.StatusBadRequest)
 		log.Println("Player not found")
@@ -48,5 +49,8 @@ func CollectResource(w http.ResponseWriter, r *http.Request, resource string) {
 		log.Println("Error Occured, ", err)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }

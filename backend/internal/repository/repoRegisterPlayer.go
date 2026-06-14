@@ -65,8 +65,8 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 	queryClan := `
 	INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y, built_by, is_built) VALUES
 	($1, 3001, 15, 15, NULL, true),
-	($1, 2011, 15, 18, NULL, true),
-	($1, 2021, 15, 12, NULL, true);
+	($1, 2011, 20, 23, NULL, true),
+	($1, 2021, 11, 17, NULL, true);
 	`
 
 	_, err = tx.Exec(queryClan, savedId)

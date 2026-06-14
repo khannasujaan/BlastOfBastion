@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
+	"github.com/khannasujaan/BlastOfBastion/internal/dto"
 )
 
 var ErrPlayerNotFound = errors.New("Player not found")
@@ -61,11 +62,12 @@ func GetPlayerMaxStorageResource(id uuid.UUID, resource string, tx *sql.Tx) (int
 	return maxCapacity, nil
 }
 
-func CollectResource(id uuid.UUID, resourceType string) error {
+func CollectResource(id uuid.UUID, resourceType string) (dto.ResourceCollectedResponse, error) {
+	var empty dto.ResourceCollectedResponse
 	var err error
 	tx, err := database.Db.Begin()
 	if err != nil {
-		return err
+		return empty, err
 	}
 	defer tx.Rollback()
 	var statQuery, updateQuery string
@@ -80,19 +82,19 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 		updateQuery = `UPDATE player_stats SET elixir = $1, last_collected_elixir = $2 WHERE player_id = $3`
 		mineid = 201
 	case "default":
-		return ErrUnknownResource
+		return empty, ErrUnknownResource
 	}
-	var currentAmount int
+	var currentAmount, initialAmount int
 	var lastCollected *time.Time
 	err = tx.QueryRow(statQuery, id).Scan(&currentAmount, &lastCollected)
 	if err != nil {
-		return err
+		return empty, err
 	}
 	now := time.Now()
 	if lastCollected == nil {
 		lastCollected = &now
 	}
-
+	initialAmount = currentAmount
 	maxCapacity, _ := GetPlayerMaxStorageResource(id, resourceType, tx)
 
 	query := `
@@ -104,7 +106,7 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 	`
 	rows, err := tx.Query(query, id, mineid)
 	if err != nil {
-		return err
+		return empty, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -112,7 +114,7 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 		err = rows.Scan(&gph, &stor)
 		if err != nil {
 			log.Println("Error in fetching Data, ", err)
-			return err
+			return empty, err
 		}
 		hoursPassed := time.Since(*lastCollected).Hours()
 		resourcesGenerated := int(hoursPassed * float64(gph))
@@ -122,20 +124,20 @@ func CollectResource(id uuid.UUID, resourceType string) error {
 	result, err := tx.Exec(updateQuery, currentAmount, time.Now(), id)
 	if err != nil {
 		log.Println("Error collecting gold:", err)
-		return err
+		return empty, err
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return empty, err
 	}
 	if rowsAffected == 0 {
-		return ErrPlayerNotFound
+		return empty, ErrPlayerNotFound
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return err
+		return empty, err
 	}
-
-	return nil
+	empty.Change = currentAmount - initialAmount
+	return empty, nil
 }
