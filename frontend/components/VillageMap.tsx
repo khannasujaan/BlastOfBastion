@@ -14,6 +14,7 @@ export interface VillageSync {
   level: number;
   grid_x: number;
   grid_y: number;
+  is_built: boolean;
 }
 
 interface VillageMapProps {
@@ -104,22 +105,24 @@ export default function VillageMap({ buildings }: VillageMapProps) {
       
       if (b.name === "TownHall") {
           color = 0x3b82f6; // Blue
+      } else if (b.is_built==false) {
+          color = 0x9c3214; // Red
       } else if (b.name.includes("Gold")) {
           color = 0xeab308; // Yellow
       } else if (b.name.includes("Elixir")) {
           color = 0xa855f7; // Purple
       }
-
+  
       // Draw the colored square
       bGraphic.beginFill(color);
       bGraphic.lineStyle(2, 0x000000, 0.8); // Black border
       bGraphic.drawRect(0, 0, BASE_TILE_SIZE * tileSize, BASE_TILE_SIZE * tileSize);
       bGraphic.endFill();
-
+  
       // Position it exactly on the grid coordinates!
       bGraphic.x = (b.grid_x-1) * BASE_TILE_SIZE;
       bGraphic.y = (b.grid_y-1) * BASE_TILE_SIZE;
-
+  
       // Stick it to the plastic sheet
       layer.addChild(bGraphic);
     });

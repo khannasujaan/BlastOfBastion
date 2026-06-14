@@ -33,7 +33,7 @@ func GetGameData(id uuid.UUID) (*dto.GameDataSyncResponse, error) {
 	}
 
 	query = `
-        SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name 
+        SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built 
         FROM player_buildings pb
         JOIN building_catalog bc ON pb.building_id = bc.id
         WHERE pb.player_id = $1
@@ -53,6 +53,7 @@ func GetGameData(id uuid.UUID) (*dto.GameDataSyncResponse, error) {
 			&newBuilding.GridY,
 			&newBuilding.Level,
 			&newBuilding.Name,
+			&newBuilding.IsBuilt,
 		)
 		if err != nil {
 			return nil, err

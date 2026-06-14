@@ -51,6 +51,7 @@ interface VillageSync {
   level: number;
   grid_x: number; 
   grid_y: number;
+  is_built: boolean;
 }
 
 interface TroopsSync {

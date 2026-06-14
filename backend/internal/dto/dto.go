@@ -35,6 +35,7 @@ type VillageSync struct {
 	Level      int    `json:"level"`
 	GridX      int    `json:"grid_x"`
 	GridY      int    `json:"grid_y"`
+	IsBuilt    bool   `json:"is_built"`
 }
 type TroopsSync struct {
 	TroopId  int    `json:"troop_id"`
