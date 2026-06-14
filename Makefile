@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: docker server migrate migrate-down
+.PHONY: docker server migrate 
 
 ARGS = $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 
