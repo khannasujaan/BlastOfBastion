@@ -75,6 +75,21 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 
+	queryTroops := `
+	INSERT INTO troops_unlocked (player_id, troop_name, troop_id) VALUES
+	($1, 'Barbarian', 101),
+	($1, 'Archer', 201),
+	($1, 'Goblin', 0),
+	($1, 'Giant', 0),
+	($1, 'Wizard', 0);
+	`
+
+	_, err = tx.Exec(queryTroops, savedId)
+	if err != nil {
+		log.Println("Couldn't insert data in database, Error:", err)
+		return uuid.Nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return uuid.Nil, err

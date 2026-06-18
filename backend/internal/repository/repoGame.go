@@ -23,17 +23,17 @@ func GetGameData(id uuid.UUID) (*dto.GameDataSyncResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	playerStats.MaxGold, err = GetPlayerMaxStorageResource(id, "GoldMine", tx)
+	playerStats.MaxGold, err = GetPlayerMaxStorageResource(id, "gold", tx)
 	if err != nil {
 		return nil, err
 	}
-	playerStats.MaxElixir, err = GetPlayerMaxStorageResource(id, "ElixirColl", tx)
+	playerStats.MaxElixir, err = GetPlayerMaxStorageResource(id, "elixir", tx)
 	if err != nil {
 		return nil, err
 	}
 
 	query = `
-        SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built 
+        SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built , pb.built_by
         FROM player_buildings pb
         JOIN building_catalog bc ON pb.building_id = bc.id
         WHERE pb.player_id = $1
@@ -54,6 +54,7 @@ func GetGameData(id uuid.UUID) (*dto.GameDataSyncResponse, error) {
 			&newBuilding.Level,
 			&newBuilding.Name,
 			&newBuilding.IsBuilt,
+			&newBuilding.FinishTime,
 		)
 		if err != nil {
 			return nil, err

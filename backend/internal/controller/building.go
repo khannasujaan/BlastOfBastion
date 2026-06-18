@@ -62,6 +62,10 @@ func NewBuilding(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Space already occupied", http.StatusBadRequest)
 		log.Println("Space already occupied")
 		return
+	} else if err == repository.ErrMaxCountOfBuilding {
+		http.Error(w, "Can't build more of this building at current townhall level", http.StatusBadRequest)
+		log.Println("Can't build more of this building at current townhall level")
+		return
 	} else if err != nil {
 		http.Error(w, "An Error Occured", http.StatusInternalServerError)
 		log.Println("An Error occured, ", err)

@@ -15,51 +15,34 @@ var ErrPlayerNotFound = errors.New("Player not found")
 var ErrUnknownResource = errors.New("Unknown resource")
 
 func GetPlayerMaxStorageResource(id uuid.UUID, resource string, tx *sql.Tx) (int, error) {
-	var idtemp int
+	var minID, maxID int
 	switch resource {
 	case "gold":
-		idtemp = 301
+		minID, maxID = 3010, 3019
 	case "elixir":
-		idtemp = 302
-	case "default":
+		minID, maxID = 3020, 3029
+	default:
 		return 0, ErrUnknownResource
 	}
-	maxCapacity := 0
-	storQuery := `
-	SELECT rs.storage
-	FROM resource_storage rs 
-	JOIN player_buildings pb ON pb.building_id = rs.building_id
-	WHERE player_id = $1 AND pb.building_id/10 = $2
-	`
-	rows, err := tx.Query(storQuery, id, idtemp)
-	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var stor int
-		err = rows.Scan(&stor)
-		if err != nil {
-			log.Println("Error in fetching Data, ", err)
-			return 0, err
-		}
-		maxCapacity += stor
-	}
 
-	storQuery = `
-	SELECT rs.storage
-	FROM resource_storage rs 
-	JOIN player_buildings pb ON pb.building_id = rs.building_id
-	JOIN building_catalog bc ON pb.building_id = bc.id
-	WHERE pb.player_id = $1 AND pb.building_id/10 = 300
-	`
-	var townhallStor int
-	err = tx.QueryRow(storQuery, id).Scan(&townhallStor)
+	query := `
+        SELECT COALESCE(SUM(rs.storage), 0)
+        FROM player_buildings pb
+        JOIN resource_storage rs ON pb.building_id = rs.building_id
+        WHERE pb.player_id = $1 
+          AND pb.is_built = true -- Only count it if construction is finished!
+          AND (
+              (pb.building_id BETWEEN $2 AND $3) OR 
+              (pb.building_id BETWEEN 3000 AND 3009)
+          )
+    `
+	var totalCapacity int
+	err := tx.QueryRow(query, id, minID, maxID).Scan(&totalCapacity)
 	if err != nil {
+		log.Println("Error calculating max storage:", err)
 		return 0, err
 	}
-	maxCapacity += townhallStor
-	return maxCapacity, nil
+	return totalCapacity, nil
 }
 
 func CollectResource(id uuid.UUID, resourceType string) (dto.ResourceCollectedResponse, error) {
@@ -76,11 +59,11 @@ func CollectResource(id uuid.UUID, resourceType string) (dto.ResourceCollectedRe
 	case "gold":
 		statQuery = `SELECT gold, last_collected_gold FROM player_stats WHERE player_id = $1`
 		updateQuery = `UPDATE player_stats SET gold = $1, last_collected_gold = $2 WHERE player_id = $3`
-		mineid = 202
+		mineid = 201
 	case "elixir":
 		statQuery = `SELECT elixir, last_collected_elixir FROM player_stats WHERE player_id = $1`
 		updateQuery = `UPDATE player_stats SET elixir = $1, last_collected_elixir = $2 WHERE player_id = $3`
-		mineid = 201
+		mineid = 202
 	case "default":
 		return empty, ErrUnknownResource
 	}

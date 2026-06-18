@@ -1,17 +1,48 @@
 "use client";
-import dynamic from 'next/dynamic';
-import { VillageSync } from './VillageMap'; // Import the interface!
+import dynamic from "next/dynamic";
+import { VillageSync } from "./VillageMap";
+import { DeployedTroops, DeployedTroop } from "@/app/battle/page";
 
-const PixiMap = dynamic(() => import('./VillageMap'), { 
+const PixiMap = dynamic(() => import("./VillageMap"), {
   ssr: false,
-  loading: () => <div className="flex h-screen w-screen items-center justify-center bg-stone-900 text-white font-mono animate-pulse">Loading Engine...</div>
+  loading: () => (
+    <div className="flex h-screen w-screen items-center justify-center bg-[#0d1117] text-white font-mono text-sm animate-pulse">
+      Loading Engine…
+    </div>
+  ),
+});
+const AttackPixiMap = dynamic(() => import("./AttackMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-screen w-screen items-center justify-center bg-[#0d1117] text-white font-mono text-sm animate-pulse">
+      Loading Engine…
+    </div>
+  ),
 });
 
-// Define the props for the wrapper
 interface MapWrapperProps {
   buildings: VillageSync[];
+  onMoveBuilding: (id: number, newX: number, newY: number, oldX: number, oldY: number) => void;
+  placementMode: { building_id: number; size: number } | null;
+  onBuild: (buildingId: number, gridX: number, gridY: number) => void;
+  onSelectBuilding: (buildingId: number | null, gridX?: number, gridY?: number) => void;
+  onCancelBuild: () => void;
 }
 
-export default function MapWrapper({ buildings }: MapWrapperProps) {
-  return <PixiMap buildings={buildings} />;
+interface AttackWrapperProps {
+  buildings: VillageSync[];
+  deployedTroops: DeployedTroop[];
+  onDeployTroop?: (gridX: number, gridY: number) => void; 
+  // onMoveBuilding: (id: number, newX: number, newY: number, oldX: number, oldY: number) => void;
+  // placementMode: { building_id: number; size: number } | null;
+  // onBuild: (buildingId: number, gridX: number, gridY: number) => void;
+  // onSelectBuilding: (buildingId: number | null, gridX?: number, gridY?: number) => void;
+  // onCancelBuild: () => void;
+}
+
+export default function MapWrapper(props: MapWrapperProps) {
+  return <PixiMap {...props} />;
+}
+export function AttackWrapper(props: AttackWrapperProps) {
+  return <AttackPixiMap {...props} />;
 }

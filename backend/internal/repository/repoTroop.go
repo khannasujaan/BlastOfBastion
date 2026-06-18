@@ -33,12 +33,13 @@ func TrainTroop(id uuid.UUID, TroopReq dto.TroopTrainRequest) error {
 	}
 	defer tx.Rollback()
 
+	log.Println(TroopReq.Troops)
 	var totalHousingSpace int
 	query := `
 	SELECT rs.storage
 	FROM resource_storage rs 
 	JOIN player_buildings pb ON pb.building_id = rs.building_id
-	WHERE pb.player_id = $1 AND pb.building_id/10 = 303
+	WHERE pb.player_id = $1 AND pb.building_id BETWEEN 3031 AND 3032
 	`
 	rows, err := tx.Query(query, id)
 	if err != nil {
@@ -60,11 +61,24 @@ func TrainTroop(id uuid.UUID, TroopReq dto.TroopTrainRequest) error {
 
 	var housingSpaceReq int
 	for _, troop := range TroopReq.Troops {
-		currentTroopID := troop.TroopId
+
+		if troop.Quantity <= 0 {
+			continue
+		}
+
+		currentTroopName := troop.TroopName
 		currentQuantity := troop.Quantity
+
+		query := `SELECT troop_id FROM troops_unlocked WHERE player_id = $1 AND troop_name = $2`
+		var troopid int
+		err = tx.QueryRow(query, id, currentTroopName).Scan(&troopid)
+		if err != nil {
+			return err
+		}
+
 		var currentHousingSpace, unlockThallLevel int
-		query := `SELECT housing_space, unlock_thall_level FROM troops_catalog WHERE id = $1`
-		err = tx.QueryRow(query, currentTroopID).Scan(&currentHousingSpace, &unlockThallLevel)
+		query = `SELECT housing_space, unlock_thall_level FROM troops_catalog WHERE id = $1`
+		err = tx.QueryRow(query, troopid).Scan(&currentHousingSpace, &unlockThallLevel)
 		if err != nil {
 			return err
 		}
@@ -74,6 +88,7 @@ func TrainTroop(id uuid.UUID, TroopReq dto.TroopTrainRequest) error {
 		}
 	}
 	if housingSpaceReq > totalHousingSpace {
+		log.Println(housingSpaceReq, totalHousingSpace)
 		return ErrMoreThanHousingSpace
 	}
 
@@ -84,7 +99,14 @@ func TrainTroop(id uuid.UUID, TroopReq dto.TroopTrainRequest) error {
 	insertQuery := `INSERT INTO player_army (player_id, troop_id, quantity) VALUES ($1, $2, $3)`
 	for _, troop := range TroopReq.Troops {
 		if troop.Quantity > 0 {
-			_, err = tx.Exec(insertQuery, id, troop.TroopId, troop.Quantity)
+			query := `SELECT troop_id FROM troops_unlocked WHERE player_id = $1 AND troop_name = $2`
+			var troopid int
+			err = tx.QueryRow(query, id, troop.TroopName).Scan(&troopid)
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.Exec(insertQuery, id, troopid, troop.Quantity)
 			if err != nil {
 				return err
 			}
@@ -100,9 +122,16 @@ func UpgradeTroop(id uuid.UUID, TroopReq dto.TroopUpgradeRequest) error {
 	}
 	defer tx.Rollback()
 
+	var troopId int
+	query := `SELECT troop_id FROM troops_unlocked WHERE player_id = $1 AND troop_name = $2`
+	err = tx.QueryRow(query, id, TroopReq.TroopName).Scan(&troopId)
+	if err != nil {
+		return err
+	}
+
 	var unlockThallLevel, costElixir int
-	query := `SELECT unlock_thall_level, cost_elixir FROM troops_catalog WHERE id = $1`
-	err = tx.QueryRow(query, TroopReq.TroopId+1).Scan(&unlockThallLevel, &costElixir)
+	query = `SELECT unlock_thall_level, cost_elixir FROM troops_catalog WHERE id = $1`
+	err = tx.QueryRow(query, troopId+1).Scan(&unlockThallLevel, &costElixir)
 	if err != nil {
 		return err
 	}
@@ -130,21 +159,17 @@ func UpgradeTroop(id uuid.UUID, TroopReq dto.TroopUpgradeRequest) error {
 		return err
 	}
 
-	// CHANGE THE LEVEL OF TROOP IN PLAYER_STATS
+	query = `UPDATE troops_unlocked SET troop_id = $1 WHERE player_id = $2 AND troop_name = $3`
+	_, err = tx.Exec(query, troopId+1, id, TroopReq.TroopName)
+	if err != nil {
+		return err
+	}
 
-	// query = `UPDATE player_army SET `
-	// result, err := tx.Exec(query)
-	// if err != nil {
-	// 	log.Println("Error upgrading building:", err)
-	// 	return err
-	// }
-	// rowsAffected, err := result.RowsAffected()
-	// if err != nil {
-	// 	return err
-	// }
-	// if rowsAffected == 0 {
-	// 	return ErrTroopNotFound
-	// }
+	query = `UPDATE player_army SET troop_id = $1 WHERE player_id = $2 AND troop_id = $3`
+	_, err = tx.Exec(query, troopId+1, id, troopId)
+	if err != nil {
+		return err
+	}
 
 	err = tx.Commit()
 	if err != nil {

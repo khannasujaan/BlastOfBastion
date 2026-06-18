@@ -16,6 +16,7 @@ var ErrSpaceOccupied = errors.New("Space Occupied")
 var ErrBuildingNotFound = errors.New("No such building found")
 var ErrTownhallLevelLow = errors.New("A higher Town hall level is required for that")
 var ErrBadRequest = errors.New("Bad request")
+var ErrMaxCountOfBuilding = errors.New("No more of this building at this townhall level")
 
 func GetPlayerTownHallLevel(playerID uuid.UUID, tx *sql.Tx) (int, error) {
 	query := `
@@ -93,11 +94,12 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildNewRequest) error {
 	if err != nil {
 		return err
 	}
-	query = `SELECT cost_gold, cost_elixir FROM building_catalog WHERE id = $1`
+	var name string
+	query = `SELECT cost_gold, cost_elixir, name FROM building_catalog WHERE id = $1`
 	var costGold, costElixir int
 	buildingUuid := BuildReq.BuildingID
 
-	err = tx.QueryRow(query, buildingUuid).Scan(&costGold, &costElixir)
+	err = tx.QueryRow(query, buildingUuid).Scan(&costGold, &costElixir, &name)
 	if err != nil {
 		log.Println("Error in fetching Data, ", err)
 		return err
@@ -135,7 +137,18 @@ func NewBuilding(id uuid.UUID, BuildReq dto.BuildNewRequest) error {
 		return err
 	}
 
-	// CHECK THE AMOUNT OF BUILDINGS
+	var maxBuildingCount int
+	query = `SELECT quantity FROM max_buildings WHERE name = $1 AND thall_level=$2`
+	err = tx.QueryRow(query, name, playerTownhall).Scan(&maxBuildingCount)
+	if err != nil {
+		log.Println("Error in fetching Data, ", err)
+		return err
+	}
+
+	if buildingCount >= maxBuildingCount {
+		log.Println("No more of this building at this townhall level")
+		return ErrMaxCountOfBuilding
+	}
 
 	query = `UPDATE player_stats SET gold = gold - $1, elixir = elixir - $2 WHERE player_id = $3`
 	_, err = tx.Exec(query, costGold, costElixir, id)
@@ -214,7 +227,7 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 		return err
 	}
 	defer tx.Rollback()
-
+	log.Println(BuildReq.BuildingID, BuildReq.GridX, BuildReq.GridY)
 	query := `SELECT id FROM player_buildings WHERE player_id = $1 AND grid_x = $2 AND grid_y = $3`
 	var instanceId int
 	err = tx.QueryRow(query, id, BuildReq.GridX, BuildReq.GridY).Scan(&instanceId)
@@ -228,7 +241,7 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 	err = tx.QueryRow(query, BuildReq.BuildingID+1).Scan(&newuuid, &tHallNeedLevel, &costGold, &costElixir, &buildTime)
 	if err != nil {
 		log.Println("Can't upgrade", err)
-		return ErrTownhallLevelLow
+		return err
 	}
 	currentThallLevel, err := GetPlayerTownHallLevel(id, tx)
 	if err != nil {
@@ -255,6 +268,29 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 	if err != nil {
 		log.Println("Error deducting resources:", err)
 		return err
+	}
+
+	if (BuildReq.BuildingID/10 == 300) && (currentThallLevel == 1) {
+		query = `UPDATE troops_unlocked SET troop_id = 301 WHERE player_id = $1 AND troop_name = 'Goblin'`
+		_, err = tx.Exec(query, id)
+		if err != nil {
+			log.Println("Updating Troop level", err)
+			return err
+		}
+		query = `UPDATE troops_unlocked SET troop_id = 401 WHERE player_id = $1 AND troop_name = 'Giant'`
+		_, err = tx.Exec(query, id)
+		if err != nil {
+			log.Println("Updating Troop level", err)
+			return err
+		}
+	}
+	if (BuildReq.BuildingID/10 == 300) && (currentThallLevel == 3) {
+		query = `UPDATE troops_unlocked SET troop_id = 501 WHERE player_id = $1 AND troop_name = 'Wizard'`
+		_, err = tx.Exec(query, id)
+		if err != nil {
+			log.Println("Updating Troop level", err)
+			return err
+		}
 	}
 
 	now := time.Now()

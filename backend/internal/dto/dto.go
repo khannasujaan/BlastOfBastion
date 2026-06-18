@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Player struct {
 	Username string `json:"username"`
@@ -29,13 +33,14 @@ type BuildMoveRequest struct {
 }
 
 type VillageSync struct {
-	Id         int    `json:"id"`
-	BuildingID int    `json:"building_id"`
-	Name       string `json:"name"`
-	Level      int    `json:"level"`
-	GridX      int    `json:"grid_x"`
-	GridY      int    `json:"grid_y"`
-	IsBuilt    bool   `json:"is_built"`
+	Id         int        `json:"id"`
+	BuildingID int        `json:"building_id"`
+	Name       string     `json:"name"`
+	Level      int        `json:"level"`
+	GridX      int        `json:"grid_x"`
+	GridY      int        `json:"grid_y"`
+	IsBuilt    bool       `json:"is_built"`
+	FinishTime *time.Time `json:"finish_time"`
 }
 type TroopsSync struct {
 	TroopId  int    `json:"troop_id"`
@@ -61,18 +66,29 @@ type ResourceCollectedResponse struct {
 }
 
 type TroopRequest struct {
-	TroopId  int `json:"troop_id"`
-	Quantity int `json:"quantity"`
+	TroopName string `json:"troop_name"`
+	Quantity  int    `json:"quantity"`
 }
 type TroopTrainRequest struct {
 	Troops []TroopRequest `json:"troops"`
 }
 
 type TroopUpgradeRequest struct {
-	TroopId int `json:"troop_id"`
+	TroopName string `json:"troop_name"`
 }
 
+type BattleId struct {
+	Opponent uuid.UUID `json:"opponent"`
+	Name     string    `json:"name"`
+}
+type GetVillageRequest struct {
+	Opponent uuid.UUID `json:"opponent"`
+}
 type BattleResponse struct {
-	Amount    int         `json:"amount"`
-	Opponents []uuid.UUID `json:"opponents"`
+	Gold      int           `json:"gold"`
+	Elixir    int           `json:"elixir"`
+	Opponent  uuid.UUID     `json:"opponent"`
+	Name      string        `json:"name"`
+	Buildings []VillageSync `json:"buildings"`
+	Troops    []TroopsSync  `json:"troops"`
 }
