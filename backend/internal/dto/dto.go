@@ -84,11 +84,50 @@ type BattleId struct {
 type GetVillageRequest struct {
 	Opponent uuid.UUID `json:"opponent"`
 }
+type VillageBattle struct {
+	Id         int        `json:"id"`
+	BuildingID int        `json:"building_id"`
+	Name       string     `json:"name"`
+	Level      int        `json:"level"`
+	GridX      int        `json:"grid_x"`
+	GridY      int        `json:"grid_y"`
+	IsBuilt    bool       `json:"is_built"`
+	FinishTime *time.Time `json:"finish_time"`
+	HP         int        `json:"hp"`
+}
+type TroopBattle struct {
+	TroopId  int    `json:"troop_id"`
+	Name     string `json:"name"`
+	Level    int    `json:"level"`
+	Quantity int    `json:"quantity"`
+	Speed    int    `json:"speed"`
+	Range    int    `json:"range"`
+	Damage   int    `json:"damage"`
+	HP       int    `json:"hp"`
+}
+
 type BattleResponse struct {
-	Gold      int           `json:"gold"`
-	Elixir    int           `json:"elixir"`
-	Opponent  uuid.UUID     `json:"opponent"`
-	Name      string        `json:"name"`
-	Buildings []VillageSync `json:"buildings"`
-	Troops    []TroopsSync  `json:"troops"`
+	Gold      int             `json:"gold"`
+	Elixir    int             `json:"elixir"`
+	Opponent  uuid.UUID       `json:"opponent"`
+	Name      string          `json:"name"`
+	Buildings []VillageBattle `json:"buildings"`
+	Troops    []TroopBattle   `json:"troops"`
+}
+type Defences struct {
+	Id          int        `json:"id"`
+	BuildingID  int        `json:"building_id"`
+	Name        string     `json:"name"`
+	Level       int        `json:"level"`
+	GridX       int        `json:"grid_x"`
+	GridY       int        `json:"grid_y"`
+	IsBuilt     bool       `json:"is_built"`
+	FinishTime  *time.Time `json:"finish_time"`
+	HP          int        `json:"hp"`
+	Range       int        `json:"range"`
+	Damage      int        `json:"damage"`
+	AttackSpeed int        `json:"attackspeed"`
+}
+type DefenceResponse struct {
+	Defences []Defences `json:"defences"`
 }

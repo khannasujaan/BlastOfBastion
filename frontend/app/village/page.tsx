@@ -29,7 +29,7 @@ export function authHeaders() {
   };
 }
 
-export interface TroopsSync {
+interface TroopsSync {
   troop_id: number;
   name: string;
   level: number;

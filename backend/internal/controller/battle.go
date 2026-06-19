@@ -86,3 +86,45 @@ func GetVillage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 
 }
+
+func GetDefense(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
+		log.Println("Invalid method")
+		return
+	}
+
+	var err error
+	var BattleReq dto.GetVillageRequest
+	err = json.NewDecoder(r.Body).Decode(&BattleReq)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	playerID := r.Context().Value("playerID")
+	idString, ok := playerID.(string)
+	if !ok {
+		http.Error(w, "Invalid player ID format in context", http.StatusInternalServerError)
+		log.Println("Invalid player ID format in context")
+		return
+	}
+	parsedUUID, err := uuid.Parse(idString)
+	if err != nil {
+		http.Error(w, "Could not parse UUID", http.StatusInternalServerError)
+		log.Println("Could not parse UUID")
+		return
+	}
+
+	response, err := repository.CollectDataDefence(parsedUUID, BattleReq)
+	if err != nil {
+		http.Error(w, "An Error occured", http.StatusInternalServerError)
+		log.Println("An Error occured, ", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+}

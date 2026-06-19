@@ -86,9 +86,9 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 	if err != nil {
 		return empty, err
 	}
-	var opponentBuildings []dto.VillageSync
+	var opponentBuildings []dto.VillageBattle
 	query := `
-        SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built , pb.built_by
+        SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built , pb.built_by, bc.base_health
         FROM player_buildings pb
         JOIN building_catalog bc ON pb.building_id = bc.id
         WHERE pb.player_id = $1
@@ -99,7 +99,7 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var newBuilding dto.VillageSync
+		var newBuilding dto.VillageBattle
 
 		err = rows.Scan(
 			&newBuilding.Id,
@@ -110,6 +110,7 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 			&newBuilding.Name,
 			&newBuilding.IsBuilt,
 			&newBuilding.FinishTime,
+			&newBuilding.HP,
 		)
 		if err != nil {
 			return empty, err
@@ -118,9 +119,9 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 		opponentBuildings = append(opponentBuildings, newBuilding)
 	}
 
-	var playerTroops []dto.TroopsSync
+	var playerTroops []dto.TroopBattle
 	query = `
-        SELECT pa.troop_id, pa.quantity, tc.name, tc.level 
+        SELECT pa.troop_id, pa.quantity, tc.name, tc.level, tc.speed, tc.damage, tc.range, tc.health
         FROM player_army pa
         JOIN troops_catalog tc ON pa.troop_id = tc.id
         WHERE pa.player_id = $1
@@ -131,13 +132,17 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var newTroop dto.TroopsSync
+		var newTroop dto.TroopBattle
 
 		err = rows.Scan(
 			&newTroop.TroopId,
 			&newTroop.Quantity,
 			&newTroop.Name,
 			&newTroop.Level,
+			&newTroop.Speed,
+			&newTroop.Damage,
+			&newTroop.Range,
+			&newTroop.HP,
 		)
 		if err != nil {
 			return empty, err
@@ -165,5 +170,54 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 		Opponent:  BattleReq.Opponent,
 		Troops:    playerTroops,
 	}
+	return response, nil
+}
+
+func CollectDataDefence(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.DefenceResponse, error) {
+	var empty dto.DefenceResponse
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return empty, err
+	}
+	var opponentBuildings []dto.Defences
+	query := `
+        SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built , pb.built_by, bc.base_health, db.range, db.damage_per_attack, db.attack_speed_ms
+        FROM player_buildings pb
+        JOIN building_catalog bc ON pb.building_id = bc.id
+		JOIN defense_buildings db ON db.building_id = bc.id
+        WHERE pb.player_id = $1
+    `
+	rows, err := tx.Query(query, BattleReq.Opponent)
+	if err != nil {
+		return empty, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var newBuilding dto.Defences
+
+		err = rows.Scan(
+			&newBuilding.Id,
+			&newBuilding.BuildingID,
+			&newBuilding.GridX,
+			&newBuilding.GridY,
+			&newBuilding.Level,
+			&newBuilding.Name,
+			&newBuilding.IsBuilt,
+			&newBuilding.FinishTime,
+			&newBuilding.HP,
+			&newBuilding.Range,
+			&newBuilding.Damage,
+			&newBuilding.AttackSpeed,
+		)
+		if err != nil {
+			return empty, err
+		}
+
+		opponentBuildings = append(opponentBuildings, newBuilding)
+	}
+	response := dto.DefenceResponse{
+		Defences: opponentBuildings,
+	}
+
 	return response, nil
 }
