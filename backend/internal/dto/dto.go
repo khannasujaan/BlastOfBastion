@@ -131,3 +131,10 @@ type Defences struct {
 type DefenceResponse struct {
 	Defences []Defences `json:"defences"`
 }
+
+type BattleEnd struct {
+	Defender   uuid.UUID `json:"defender"`
+	Percantage int       `json:"percentage"`
+	Gold       int       `json:"gold"`
+	Elixir     int       `json:"elixir"`
+}

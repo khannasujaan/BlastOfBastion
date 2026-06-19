@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"log"
 	"math/rand/v2"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
@@ -16,6 +18,7 @@ func Matchmaking(id uuid.UUID) (dto.BattleId, error) {
 	if err != nil {
 		return empty, err
 	}
+	defer tx.Rollback()
 
 	var playerTrophies int
 	query := `SELECT trophies FROM player_stats WHERE player_id = $1`
@@ -74,6 +77,10 @@ func Matchmaking(id uuid.UUID) (dto.BattleId, error) {
 		return empty, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return empty, err
+	}
+
 	var response dto.BattleId
 	response.Opponent = finalOpponent
 	response.Name = name
@@ -86,6 +93,7 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 	if err != nil {
 		return empty, err
 	}
+	defer tx.Rollback()
 	var opponentBuildings []dto.VillageBattle
 	query := `
         SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built , pb.built_by, bc.base_health
@@ -162,6 +170,16 @@ func CollectDataBattle(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Battl
 		return empty, err
 	}
 
+	query = `UPDATE player_stats SET last_attacked_time = $1 WHERE player_id = $2`
+	_, err = tx.Exec(query, time.Now(), BattleReq.Opponent)
+	if err != nil {
+		return empty, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return empty, err
+	}
+
 	response := dto.BattleResponse{
 		Name:      name,
 		Buildings: opponentBuildings,
@@ -179,6 +197,7 @@ func CollectDataDefence(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Defe
 	if err != nil {
 		return empty, err
 	}
+	defer tx.Rollback()
 	var opponentBuildings []dto.Defences
 	query := `
         SELECT pb.id, pb.building_id, pb.grid_x, pb.grid_y, bc.level, bc.name, pb.is_built , pb.built_by, bc.base_health, db.range, db.damage_per_attack, db.attack_speed_ms
@@ -219,5 +238,67 @@ func CollectDataDefence(id uuid.UUID, BattleReq dto.GetVillageRequest) (dto.Defe
 		Defences: opponentBuildings,
 	}
 
+	if err = tx.Commit(); err != nil {
+		return empty, err
+	}
+
 	return response, nil
+}
+
+func Conclusion(attacker, defender, winner uuid.UUID, percentage, gold, elixir int) error {
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `UPDATE player_stats SET gold = gold - $1, elixir = elixir - $2 WHERE player_id = $3`
+	_, err = tx.Exec(query, gold, elixir, defender)
+	if err != nil {
+		log.Println("Error deducting resources:", err)
+		return err
+	}
+
+	query = `UPDATE player_stats SET gold = gold + $1, elixir = elixir + $2 WHERE player_id = $3`
+	_, err = tx.Exec(query, gold, elixir, attacker)
+	if err != nil {
+		log.Println("Error Adding resources:", err)
+		return err
+	}
+	var loser uuid.UUID
+	if winner == attacker {
+		loser = defender
+	} else {
+		loser = attacker
+	}
+
+	query = `UPDATE player_stats SET trophies = GREATEST(trophies - 5, 0) WHERE player_id = $1`
+	_, err = tx.Exec(query, loser)
+	if err != nil {
+		log.Println("Error Adding resources:", err)
+		return err
+	}
+	query = `UPDATE player_stats SET trophies = trophies + 20 WHERE player_id = $1`
+	_, err = tx.Exec(query, winner)
+	if err != nil {
+		log.Println("Error Adding resources:", err)
+		return err
+	}
+
+	query = `
+	INSERT INTO battles (attacker_id, defender_id, winner_id, percentage_damage, gold_gained, elixir_gained, battle_time) VALUES
+		($1, $2, $3, $4, $5, $6, $7);
+	`
+	_, err = tx.Exec(query, attacker, defender, winner, percentage, gold, elixir, time.Now())
+	if err != nil {
+		log.Println("Error Adding resources:", err)
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

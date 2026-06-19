@@ -95,6 +95,7 @@ export default function BattlePage() {
   const [timerDisplay,  setTimerDisplay]  = useState<string>("03:00");
   const [fetchError,    setFetchError]    = useState<string | null>(null);
   const [buildingDestoryed, setBuildingDestroyed] = useState<number>(0);
+  const [isReturning, setIsReturning] = useState<boolean>(false);
 
   const buildingHealthRef   = useRef<Record<number, number>>({});
   const buildingMaxHpRef    = useRef<Record<number, number>>({});
@@ -102,9 +103,18 @@ export default function BattlePage() {
   const projectilesRef      = useRef<Projectile[]>([]);
   const projIdRef           = useRef(0);
 
+  const destructionRef  = useRef(0);
+  const goldGainedRef   = useRef(0);
+  const elixirGainedRef = useRef(0);
+
   useEffect(() => { setStartTime(Date.now()); }, []);
 
   useEffect(() => {
+    setPlayerData(null);
+    setDefBuildings(null);
+    setDeployedTroops(null);
+    setEndBattle(false);
+    setFetchError(null);
     async function fetchOpponentBase() {
       function getToken(): string | null {
         const t = localStorage.getItem("JWTtoken");
@@ -119,7 +129,9 @@ export default function BattlePage() {
           method: "POST",
           headers: authHeaders(),
           body: JSON.stringify({ opponent: opponentId }),
+          cache: "no-store",
         });
+        console.log("here")
         if (!res.ok) { setFetchError(`Server returned status ${res.status} for getvillage`); return; }
 
         const rawText = await res.text();
@@ -140,6 +152,7 @@ export default function BattlePage() {
           method: "POST",
           headers: authHeaders(),
           body: JSON.stringify({ opponent: opponentId }),
+          cache: "no-store",
         });
         if (defRes.ok) {
           const defText = await defRes.text();
@@ -233,6 +246,58 @@ export default function BattlePage() {
       };
     });
   }, []);
+
+  const concludeBattle = async () => {
+    if (isReturning) return;
+    setIsReturning(true);
+
+    const token = localStorage.getItem("JWTtoken");
+    if (!token || !opponentId) {
+      router.replace("/village");
+      return;
+    }
+
+    const payload = {
+      defender: opponentId,
+      percentage: destructionRef.current,
+      gold: goldGainedRef.current,
+      elixir: elixirGainedRef.current,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/battle/conclusion`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
+      
+      if (!res.ok) { 
+        console.error(`Server returned status ${res.status} for conclusion`); 
+      }
+    } catch (err: any) {
+      console.error("Conclusion Fetch Error:", err.message);
+    }
+
+    router.refresh(); 
+    router.replace("/village");
+  };
+
+  useEffect(() => {
+    if (!playerData) return;
+    const total    = playerData.buildings.length;
+    const destroyed = playerData.buildings.filter(b => b.destroyed).length;
+    const pct = total > 0 ? Math.floor((destroyed / total) * 100) : 0;
+
+    const totalGold   = playerData.buildings.filter(b => b.name === "GoldStor"   || b.name === "GoldStorage").length;
+    const destGold    = playerData.buildings.filter(b => b.destroyed && (b.name === "GoldStor"   || b.name === "GoldStorage")).length;
+    const totalElixir = playerData.buildings.filter(b => b.name === "ElixirStor" || b.name === "ElixirStorage").length;
+    const destElixir  = playerData.buildings.filter(b => b.destroyed && (b.name === "ElixirStor" || b.name === "ElixirStorage")).length;
+
+    destructionRef.current  = pct;
+    goldGainedRef.current   = totalGold   > 0 ? Math.floor(playerData.gold   * (destGold   / totalGold)   * 0.20) : 0;
+    elixirGainedRef.current = totalElixir > 0 ? Math.floor(playerData.elixir * (destElixir / totalElixir) * 0.20) : 0;
+  }, [playerData]);
 
   const TILE = 50;
   const gridCentre = (gridX: number, gridY: number) => ({
@@ -570,7 +635,9 @@ export default function BattlePage() {
             </div>
 
             <button
-              onClick={() => router.back()}
+              onClick={() => {
+                concludeBattle();
+              }}
               className={`w-full bg-linear-to-b ${btnFrom} ${btnTo} ${btnHoverFrom} ${btnHoverTo} text-white font-black text-lg py-4 rounded-xl uppercase tracking-widest ${btnShadow} active:translate-y-1.5 transition-all`}
             >
               Return Home
