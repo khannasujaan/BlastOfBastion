@@ -22,7 +22,7 @@ func ConnectToDatabase() *sql.DB {
 
 	err = Db.Ping()
 	if err != nil {
-		log.Fatal("Error in connecting to database")
+		log.Fatal("Error in connecting to database", err)
 	}
 	return Db
 }

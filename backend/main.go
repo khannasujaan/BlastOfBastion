@@ -11,9 +11,11 @@ import (
 )
 
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Warning: No .env file found")
+	if os.Getenv("RUNNING_IN_DOCKER") == "" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("No .env file found")
+		}
 	}
 
 	database.ConnectToDatabase()

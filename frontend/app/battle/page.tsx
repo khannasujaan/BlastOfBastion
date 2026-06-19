@@ -15,7 +15,7 @@ export interface VillageBuilding {
   grid_x: number;
   grid_y: number;
   is_built: boolean;
-  finish_time?: number | null;
+  finish_time?: string | null;
   hp: number;
   destroyed: boolean;
 }
@@ -96,6 +96,7 @@ export default function BattlePage() {
   const [fetchError,    setFetchError]    = useState<string | null>(null);
   const [buildingDestoryed, setBuildingDestroyed] = useState<number>(0);
   const [isReturning, setIsReturning] = useState<boolean>(false);
+  const [constructionTimers, setConstructionTimers] = useState<Record<number, number>>({});
 
   const buildingHealthRef   = useRef<Record<number, number>>({});
   const buildingMaxHpRef    = useRef<Record<number, number>>({});
@@ -182,7 +183,7 @@ export default function BattlePage() {
     buildingMaxHpRef.current  = maxHp;
   }, [playerData]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!playerData || !startTime || endBattle) return;
     const iv = setInterval(() => {
       const now         = Date.now();

@@ -537,18 +537,24 @@ function ResourceBar({
   );
 }
 
-function ConstructionTimer({ finishTime }: { finishTime: number }) {
+// 🔥 FIX 1: Allow finishTime to be string OR number so it works flawlessly with Go timestamps
+function ConstructionTimer({ finishTime }: { finishTime: string | number }) {
+  // 🔥 Parse the time gracefully to ensure we get absolute milliseconds
+  const targetTimeMs = typeof finishTime === "string" ? new Date(finishTime).getTime() : finishTime;
+
   const [secsLeft, setSecsLeft] = useState(
-    Math.max(0, Math.ceil((finishTime - Date.now()) / 1000)),
+    Math.max(0, Math.ceil((targetTimeMs - Date.now()) / 1000)),
   );
+
   useEffect(() => {
     const iv = setInterval(
       () =>
-        setSecsLeft(Math.max(0, Math.ceil((finishTime - Date.now()) / 1000))),
+        setSecsLeft(Math.max(0, Math.ceil((targetTimeMs - Date.now()) / 1000))),
       1000,
     );
     return () => clearInterval(iv);
-  }, [finishTime]);
+  }, [targetTimeMs]); // 🔥 Depend on the parsed ms value
+
   return (
     <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-amber-300">
       <Clock size={11} /> {formatTime(secsLeft)}
@@ -565,7 +571,6 @@ function BuildShop({
   onClose: () => void;
   onPlace: (buildingId: number) => void;
   currentTHLevel: number;
-  // The player's current village buildings — used to count how many of each type exist
   placedBuildings: VillageSync[];
 }) {
   const categories = Array.from(
@@ -585,8 +590,6 @@ function BuildShop({
     return i.id >= 3000;
   });
 
-  // Count how many of each building the player already has on the map.
-  // Backend names may be short ("Barrack", "ElixirColl") so we normalize via DISPLAY_TO_DB_KEY.
   const countPlaced = (displayName: string): number => {
     const dbKey = DISPLAY_TO_DB_KEY[displayName];
     if (!dbKey) return 0;
@@ -596,8 +599,6 @@ function BuildShop({
     }).length;
   };
 
-  // Normalise a backend name to its MAX_BUILDINGS key.
-  // e.g. "Barracks"→"Barrack", "ElixirCollector"→"ElixirColl", "ArcherTower"→"ATower"
   const nameKeyShop = (name: string): string => {
     const map: Record<string, string> = {
       TownHall: "TownHall",
@@ -620,15 +621,12 @@ function BuildShop({
     return map[name.replace(/\s/g, "")] ?? name;
   };
 
-  // Determine why a building might be disabled and what label to show
   const getBuildStatus = (
     item: (typeof SHOP_ITEMS)[number],
   ): { disabled: boolean; reason: string | null } => {
-    // TH level too low
     if (currentTHLevel < item.thelev) {
       return { disabled: true, reason: `TH${item.thelev}+` };
     }
-    // Max building limit reached
     const dbKey = DISPLAY_TO_DB_KEY[item.name];
     if (dbKey) {
       const maxAllowed = MAX_BUILDINGS[dbKey]?.[currentTHLevel] ?? 999;
@@ -652,7 +650,6 @@ function BuildShop({
         className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Hammer size={16} className="text-amber-400" />
@@ -679,7 +676,6 @@ function BuildShop({
           </button>
         </div>
 
-        {/* Grid */}
         <div className="grid grid-cols-4 gap-3 p-4 max-h-[50vh] overflow-y-auto">
           {filtered.map((item) => {
             const { disabled, reason } = getBuildStatus(item);
@@ -739,7 +735,6 @@ function BuildShop({
   );
 }
 
-/** UPGRADE CONFIRMATION MODAL */
 function UpgradeConfirmModal({
   sel,
   nextItem,
@@ -760,7 +755,6 @@ function UpgradeConfirmModal({
         className="bg-[#1a1f2e] border border-white/15 rounded-2xl shadow-2xl w-80 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-5 py-3 flex items-center gap-2">
           <ArrowUpCircle size={16} className="text-amber-400" />
           <span className="text-white font-bold text-sm tracking-wide">
@@ -768,11 +762,9 @@ function UpgradeConfirmModal({
           </span>
         </div>
 
-        {/* Building info */}
         <div className="px-5 pt-4 pb-3 flex items-center gap-3">
           <BuildingSprite name={sel.name} size={44} />
           <div>
-            {/* Use a friendly display name: strip camelCase from backend name */}
             <p className="text-white font-semibold text-sm">
               {sel.name.replace(/([A-Z])/g, " $1").trim()}
             </p>
@@ -785,7 +777,6 @@ function UpgradeConfirmModal({
           </div>
         </div>
 
-        {/* Cost + time */}
         <div className="mx-5 mb-4 rounded-xl bg-white/5 border border-white/10 divide-y divide-white/10">
           {nextItem.cost_gold > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5">
@@ -822,7 +813,6 @@ function UpgradeConfirmModal({
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2 px-5 pb-5">
           <button
             onClick={onCancel}
@@ -842,7 +832,6 @@ function UpgradeConfirmModal({
   );
 }
 
-/** BUILDING SELECTION PANEL */
 function SelectionPanel({
   sel,
   onClose,
@@ -856,15 +845,8 @@ function SelectionPanel({
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ── BUG FIX: look up only by building_id + 1, NO name check.
-  // The backend returns names like "TownHall" (no spaces), but ALL_ITEMS uses
-  // "Town Hall". The name guard was causing every multi-word building to be
-  // misidentified as max-level. IDs are globally unique so no guard is needed.
   const nextItem = ALL_ITEMS.find((i) => i.id === sel.building_id + 1);
   const isMaxLevel = !nextItem;
-
-  // FIX: Backend DB stores the name as "Barrack" (no trailing 's').
-  // Use startsWith so both "Barrack" and "Barracks" are handled safely.
   const isBarracks = sel.name.startsWith("Barrack");
 
   return (
@@ -873,7 +855,6 @@ function SelectionPanel({
         <div className="bg-[#1a1f2e]/95 border border-white/15 rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-md">
           <BuildingSprite name={sel.name} size={44} />
           <div className="flex flex-col mr-2">
-            {/* Friendly display name */}
             <span className="text-white text-sm font-bold">
               {sel.name.replace(/([A-Z])/g, " $1").trim()}
             </span>
@@ -886,7 +867,6 @@ function SelectionPanel({
           </div>
 
           <div className="flex gap-2">
-            {/* INFO */}
             <ActionButton
               icon={<Info size={14} />}
               label="Info"
@@ -894,7 +874,6 @@ function SelectionPanel({
               onClick={() => {}}
             />
 
-            {/* UPGRADE — only when built and not at max */}
             {!isMaxLevel && sel.is_built && (
               <ActionButton
                 icon={<ArrowUpCircle size={14} />}
@@ -909,7 +888,6 @@ function SelectionPanel({
               </span>
             )}
 
-            {/* TRAIN TROOPS — Barracks only, when built */}
             {isBarracks && sel.is_built && (
               <ActionButton
                 icon={<Users size={14} />}
@@ -929,7 +907,6 @@ function SelectionPanel({
         </div>
       </div>
 
-      {/* Upgrade confirmation modal */}
       {showConfirm && nextItem && (
         <UpgradeConfirmModal
           sel={sel}
@@ -967,7 +944,6 @@ function ActionButton({
   );
 }
 
-/** TRAIN TROOPS MODAL */
 function TrainTroopsModal({
   currentTroops,
   currentTHLevel,
@@ -979,16 +955,12 @@ function TrainTroopsModal({
   currentTHLevel: number;
   housing_space: number;
   onClose: () => void;
-  // Updated DTO: backend now identifies troops by name, not numeric id
   onTrain: (
     troops: { troop_name: string; quantity: number }[],
   ) => Promise<void>;
 }) {
-  // Null-guard: Go encodes nil slices as JSON null, not [].
   const safeTroops = currentTroops ?? [];
 
-  // Build a name→quantity map seeded from the player's current persistent army.
-  // Using troop name as key because the new DTO is name-based.
   const [draft, setDraft] = useState<Map<string, number>>(() => {
     const m = new Map<string, number>();
     safeTroops.forEach((t) => m.set(t.name, t.quantity));
@@ -996,7 +968,6 @@ function TrainTroopsModal({
   });
   const [training, setTraining] = useState(false);
 
-  // Derive the live level for a troop: prefer server-reported level, fall back to catalog.
   const liveLevel = (troopName: string): number => {
     return (
       safeTroops.find((t) => t.name === troopName)?.level ??
@@ -1046,7 +1017,6 @@ function TrainTroopsModal({
         className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Swords size={15} className="text-purple-400" />
@@ -1073,7 +1043,6 @@ function TrainTroopsModal({
           </div>
         </div>
 
-        {/* Troop cards */}
         <div className="grid grid-cols-5 gap-3 p-4">
           {TROOP_CATALOG.map((troop) => {
             const locked = troop.unlock_thall_level > currentTHLevel;
@@ -1097,7 +1066,6 @@ function TrainTroopsModal({
                   {troop.name}
                 </span>
 
-                {/* Level badge — shows live server level */}
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   Lv {level}
                 </span>
@@ -1136,7 +1104,6 @@ function TrainTroopsModal({
           })}
         </div>
 
-        {/* Persistent army summary — always visible when player has a saved army */}
         <div className="mx-4 mb-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
           <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1.5">
             Current Saved Army
@@ -1192,13 +1159,11 @@ function UpgradeTroopsModal({
   currentTHLevel: number;
   currentTroops: TroopsSync[] | null;
   onClose: () => void;
-  // Updated DTO: backend now uses troop_name string, not numeric troop_id
   onUpgrade: (troopName: string) => Promise<void>;
 }) {
   const safeTroops = currentTroops ?? [];
   const [upgrading, setUpgrading] = useState<string | null>(null);
 
-  // Get the live level for a troop from the server-synced army
   const liveLevel = (troopName: string): number =>
     safeTroops.find((t) => t.name === troopName)?.level ??
     TROOP_CATALOG.find((c) => c.name === troopName)?.level ??
@@ -1219,7 +1184,6 @@ function UpgradeTroopsModal({
         className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <ChevronUp size={15} className="text-amber-400" />
@@ -1232,13 +1196,11 @@ function UpgradeTroopsModal({
           </button>
         </div>
 
-        {/* Description */}
         <p className="px-5 pt-3 pb-1 text-white/40 text-xs">
           Upgrading a troop costs Elixir and immediately improves all units of
           that type.
         </p>
 
-        {/* Troop cards */}
         <div className="grid grid-cols-5 gap-3 p-4">
           {TROOP_CATALOG.map((troop) => {
             const locked = troop.unlock_thall_level > currentTHLevel;
@@ -1260,12 +1222,10 @@ function UpgradeTroopsModal({
                   {troop.name}
                 </span>
 
-                {/* Live level badge */}
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   Lv {level}
                 </span>
 
-                {/* Cost hint */}
                 <span className="text-purple-300 text-[9px] flex items-center gap-0.5">
                   <Zap size={8} />
                   {troop.cost_elixir.toLocaleString()}
@@ -1300,12 +1260,10 @@ function BattleOverlay({
   opponent: { opponent: string; name: string } | null;
   onClose: () => void;
 }) {
-    const router = useRouter();
+  const router = useRouter();
 
-  // 3. Create the navigation function
   const handleStartBattle = () => {
     if (!opponent) return;
-    // Push to the /battle page and attach the ID to the URL
     router.push(`/battle?id=${opponent.opponent}`);
   };
   return (
@@ -1362,7 +1320,6 @@ function BattleOverlay({
 }
 
 const BUILDING_COLORS: Record<string, string> = {
-  // ── Display names (ALL_ITEMS / Shop) ──
   "Town Hall": "#3b82f6",
   "Gold Mine": "#eab308",
   "Elixir Collector": "#a855f7",
@@ -1373,7 +1330,6 @@ const BUILDING_COLORS: Record<string, string> = {
   Cannon: "#6b7280",
   "Archer Tower": "#16a34a",
   "Wizard Tower": "#2563eb",
-  // ── Backend DB names (no spaces) ──
   TownHall: "#3b82f6",
   GoldMine: "#eab308",
   ElixirColl: "#a855f7",
@@ -1454,7 +1410,6 @@ export default function VillageScreen() {
   const [housingSp, setHousingSp] = useState(0);
   const toastIdRef = useRef(0);
 
-  // ── Toast helper ──
   const showToast = useCallback(
     (text: string, kind: ToastMsg["kind"] = "info") => {
       const id = ++toastIdRef.current;
@@ -1467,7 +1422,6 @@ export default function VillageScreen() {
     [],
   );
 
-  // ── Auth guard ──
   function getToken(): string | null {
     const t = localStorage.getItem("JWTtoken");
     if (!t) {
@@ -1477,7 +1431,6 @@ export default function VillageScreen() {
     return t;
   }
 
-  // ── Initial sync ──
   useEffect(() => {
     (async () => {
       const token = localStorage.getItem("JWTtoken");
@@ -1492,11 +1445,10 @@ export default function VillageScreen() {
         if (!res.ok) throw new Error("sync failed");
         const data: GameDataSyncResponse = await res.json();
         setPlayerData(data);
-        // Approximate housing space from Army Camps
         const camps = data.buildings.filter(
           (b) => b.name === "ArmyCamp" && b.is_built,
         );
-        setHousingSp(camps.length * 20 || 20); // default 20 per camp
+        setHousingSp(camps.length * 20 || 20);
       } catch {
         showToast("Failed to connect to Bastion server", "error");
       } finally {
@@ -1505,25 +1457,26 @@ export default function VillageScreen() {
     })();
   }, []);
 
-  // ── Auto-complete construction timer ──
+  // 🔥 FIX 2: Safely parse the backend date string into a real JS timestamp for autocomplete comparisons
   useEffect(() => {
     if (!playerData) return;
     const iv = setInterval(() => {
       const now = Date.now();
       playerData.buildings.forEach((b) => {
-        if (!b.is_built && b.finish_time && now >= b.finish_time) {
-          completeBuilding(b.id, b.grid_x, b.grid_y);
+        if (!b.is_built && b.finish_time) {
+          const targetTime = typeof b.finish_time === "string" ? new Date(b.finish_time).getTime() : b.finish_time;
+          if (now >= targetTime) {
+            completeBuilding(b.id, b.grid_x, b.grid_y);
+          }
         }
       });
     }, 1000);
     return () => clearInterval(iv);
   }, [playerData]);
 
-  // ── Derived state ──
   const townHall = playerData?.buildings.find((b) => b.name === "TownHall");
   const currentTHLevel = townHall?.level ?? 1;
 
-  // ── API calls ──
   async function collectResource(type: "Gold" | "Elixir") {
     const token = getToken();
     if (!token) return;
@@ -1600,7 +1553,8 @@ export default function VillageScreen() {
         grid_x: gridX,
         grid_y: gridY,
         is_built: false,
-        finish_time: Date.now() + shopItem.buildTime * 1000,
+        // Using a number here locally optimistically. The backend will sync it as a string on refresh.
+        finish_time: Date.now() + shopItem.buildTime * 1000, 
       };
       setPlayerData((prev) => {
         if (!prev) return prev;
@@ -1687,7 +1641,6 @@ export default function VillageScreen() {
           dElixir = 0;
         const buildings = prev.buildings.map((b) => {
           if (b.id !== instanceId) return b;
-          // Bump storage caps upon completion
           if (b.building_id === 3011) dGold += 5000;
           if (b.building_id === 3021) dElixir += 5000;
           return { ...b, is_built: true, finish_time: null };
@@ -1703,7 +1656,6 @@ export default function VillageScreen() {
         };
       });
     } catch {
-      /* silent — will retry next tick */
     }
   }
 
@@ -1774,7 +1726,6 @@ export default function VillageScreen() {
     }
   }
 
-  // troops payload shape: { troop_name, quantity } — new backend DTO
   async function handleTrainTroops(
     troops: { troop_name: string; quantity: number }[],
   ) {
@@ -1792,7 +1743,6 @@ export default function VillageScreen() {
         return;
       }
 
-      // Optimistic state update — preserve the server-known level for each troop
       setPlayerData((prev) => {
         if (!prev) return prev;
         const updatedTroops: TroopsSync[] = troops
@@ -1815,7 +1765,6 @@ export default function VillageScreen() {
     }
   }
 
-  // troopName: string — new backend DTO uses troop_name
   async function handleUpgradeTroop(troopName: string) {
     const token = getToken();
     if (!token) return;
@@ -1831,7 +1780,6 @@ export default function VillageScreen() {
         return;
       }
 
-      // Increment the level of this troop in local state immediately
       setPlayerData((prev) => {
         if (!prev) return prev;
         return {
@@ -1869,7 +1817,6 @@ export default function VillageScreen() {
     }
   }
 
-  // ── Pixi callbacks ──
   const selectBuilding = useCallback(
     (buildingId: number | null, gridX?: number, gridY?: number) => {
       if (buildingId == null) {
@@ -1921,7 +1868,6 @@ export default function VillageScreen() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-green-900">
-      {/* ── LAYER 0: Pixi canvas ── */}
       <div className="absolute inset-0 z-0">
         <MapWrapper
           buildings={playerData.buildings}
@@ -1933,8 +1879,6 @@ export default function VillageScreen() {
         />
       </div>
 
-      {/* ── LAYER 1: Construction timers overlay ── */}
-      {/* These float in the HUD but show per-building info */}
       {playerData.buildings.filter((b) => !b.is_built && b.finish_time).length >
         0 && (
         <div className="absolute top-24 right-4 z-20 flex flex-col gap-1 pointer-events-none">
@@ -1955,9 +1899,7 @@ export default function VillageScreen() {
         </div>
       )}
 
-      {/* ── LAYER 2: HUD ── */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        {/* TOP-RIGHT: Resources */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-auto">
           <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2.5 flex flex-col gap-2">
             <ResourceBar
@@ -1979,7 +1921,6 @@ export default function VillageScreen() {
               collecting={collectingElixir}
             />
           </div>
-          {/* Trophies pill */}
           <div className="self-end bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 flex items-center gap-1.5">
             <Shield size={11} className="text-amber-400" />
             <span className="text-white font-bold text-xs">
@@ -1988,7 +1929,6 @@ export default function VillageScreen() {
           </div>
         </div>
 
-        {/* BOTTOM-LEFT: Battle + Upgrade Troops */}
         <div className="absolute bottom-4 left-4 flex flex-col gap-2 pointer-events-auto">
           <HudButton
             icon={<ChevronUp size={16} />}
@@ -2005,7 +1945,6 @@ export default function VillageScreen() {
           />
         </div>
 
-        {/* BOTTOM-RIGHT: Build */}
         <div className="absolute bottom-4 right-4 pointer-events-auto">
           <HudButton
             icon={<Hammer size={18} />}
@@ -2019,7 +1958,6 @@ export default function VillageScreen() {
           />
         </div>
 
-        {/* Placement mode cancel hint */}
         {placementMode && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto">
             <div className="bg-black/70 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 flex items-center gap-3 text-white text-sm">
@@ -2035,10 +1973,8 @@ export default function VillageScreen() {
         )}
       </div>
 
-      {/* ── LAYER 3: Toasts ── */}
       <ToastStack toasts={toasts} />
 
-      {/* ── LAYER 4: Modals ── */}
       {activeModal === "shop" && (
         <BuildShop
           onClose={() => setActiveModal(null)}
@@ -2077,7 +2013,6 @@ export default function VillageScreen() {
         />
       )}
 
-      {/* ── Building Selection Panel ── */}
       {selection && activeModal === null && !placementMode && (
         <SelectionPanel
           sel={selection}
