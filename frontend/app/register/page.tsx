@@ -22,9 +22,20 @@ function validateFields(fields: FormFields): FormErrors {
   const errors: FormErrors = {};
   if (!fields.username.trim()) {
     errors.username = "Username is required.";
+  } else if ((fields.username.trim().length<4)||(fields.username.trim().length>25)){
+    errors.username = "Username should be between 4 and 25 characters."
   }
   if (!fields.password) {
     errors.password = "Password is required.";
+  } else {
+    const password = fields.password
+    if ((password.length<8)||(password.length>50)){
+      errors.password = "Password should be 8 to 50 characters."
+    } else if (!/[A-Z]/.test(password)){
+      errors.password = "Password should contain atleast one uppercase character."
+    } else if (!/[0-9]/.test(password)){
+      errors.password = "Password should contain atleast one number."
+    }
   }
   return errors;
 }
