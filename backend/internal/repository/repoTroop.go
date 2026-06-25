@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/khannasujaan/BlastOfBastion/internal/database"
@@ -177,4 +178,55 @@ func UpgradeTroop(id uuid.UUID, TroopReq dto.TroopUpgradeRequest) error {
 	}
 
 	return nil
+}
+
+func GetInfoTroop(id uuid.UUID) (map[string]int, error) {
+	troopMap := make(map[string]int)
+	var err error
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return troopMap, err
+	}
+	defer tx.Rollback()
+
+	query := `SELECT troop_name, troop_id FROM troops_unlocked WHERE player_id = $1`
+	rows, err := tx.Query(query, id)
+	if err != nil {
+		return troopMap, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		var troopid int
+		err = rows.Scan(&name, &troopid)
+		if err != nil {
+			return troopMap, err
+		}
+		troopMap[strings.ToLower(name)] = troopid
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return troopMap, nil
+}
+
+func GetTroopData(id uuid.UUID, TroopReq dto.TroopDataRequest) (dto.TroopDataResponse, error) {
+	var empty dto.TroopDataResponse
+	var err error
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return empty, err
+	}
+	defer tx.Rollback()
+
+	var response dto.TroopDataResponse
+	query := `SELECT id, name, housing_space, level, unlock_thall_level, cost_elixir FROM troops_catalog WHERE id = $1`
+	err = tx.QueryRow(query, id).Scan(&response.TroopId, &response.Name, &response.HSpace, &response.Level, &response.ThallLevel, &response.Cost)
+	if err != nil {
+		return empty, err
+	}
+
+	return response, nil
 }

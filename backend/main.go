@@ -20,6 +20,7 @@ func main() {
 
 	database.ConnectToDatabase()
 	log.Println("Connected to database successfully")
+	SeedAllPlayers()
 	corsMux := routes.Routes()
 
 	port := os.Getenv("PORT")

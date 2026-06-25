@@ -65,6 +65,8 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 	queryClan := `
 	INSERT INTO player_buildings (player_id, building_id, grid_x, grid_y, built_by, is_built) VALUES
 	($1, 3001, 15, 15, NULL, true),
+	($1, 3031, 10, 10, NULL, true),
+	($1, 4001, 19, 12, NULL, true),
 	($1, 2011, 20, 23, NULL, true),
 	($1, 2021, 11, 17, NULL, true);
 	`
@@ -79,9 +81,9 @@ func Registering(newPlayer dto.Player) (uuid.UUID, error) {
 	INSERT INTO troops_unlocked (player_id, troop_name, troop_id) VALUES
 	($1, 'Barbarian', 101),
 	($1, 'Archer', 201),
-	($1, 'Goblin', 0),
-	($1, 'Giant', 0),
-	($1, 'Wizard', 0);
+	($1, 'Goblin', 300),
+	($1, 'Giant', 400),
+	($1, 'Wizard', 500);
 	`
 
 	_, err = tx.Exec(queryTroops, savedId)

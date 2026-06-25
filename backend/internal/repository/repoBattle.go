@@ -252,17 +252,29 @@ func Conclusion(attacker, defender, winner uuid.UUID, percentage, gold, elixir i
 	}
 	defer tx.Rollback()
 
-	query := `UPDATE player_stats SET gold = gold - $1, elixir = elixir - $2 WHERE player_id = $3`
+	query := `UPDATE player_stats SET gold = GREATEST(gold - $1, 0), elixir = GREATEST(elixir - $2, 0) WHERE player_id = $3`
 	_, err = tx.Exec(query, gold, elixir, defender)
 	if err != nil {
-		log.Println("Error deducting resources:", err)
+		log.Println("Error deducting resources from defender:", err)
 		return err
 	}
 
-	query = `UPDATE player_stats SET gold = gold + $1, elixir = elixir + $2 WHERE player_id = $3`
-	_, err = tx.Exec(query, gold, elixir, attacker)
+	maxGold, err := GetPlayerMaxStorageResource(attacker, "gold", tx)
 	if err != nil {
-		log.Println("Error Adding resources:", err)
+		return err
+	}
+	maxElixir, err := GetPlayerMaxStorageResource(attacker, "elixir", tx)
+	if err != nil {
+		return err
+	}
+	query = `
+	UPDATE player_stats 
+	SET gold = LEAST(gold + $1, $4), elixir = LEAST(elixir + $2, $5) 
+	WHERE player_id = $3
+	`
+	_, err = tx.Exec(query, gold, elixir, attacker, maxGold, maxElixir)
+	if err != nil {
+		log.Println("Error adding resources to attacker:", err)
 		return err
 	}
 	var loser uuid.UUID

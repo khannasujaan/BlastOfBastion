@@ -138,3 +138,33 @@ type BattleEnd struct {
 	Gold       int       `json:"gold"`
 	Elixir     int       `json:"elixir"`
 }
+
+type TroopDataRequest struct {
+	TroopId int `json:"troop_id"`
+}
+
+type TroopDataResponse struct {
+	TroopId    int    `json:"id"`
+	Name       string `json:"name"`
+	Level      int    `json:"level"`
+	HSpace     int    `json:"housing_space"`
+	ThallLevel int    `json:"unlock_thall_level"`
+	Cost       int    `json:"cost_elixir"`
+}
+
+type PlayerDataBuildings struct {
+	BuildingId int `json:"building_id"`
+	GridX      int `json:"grid_x"`
+	GridY      int `json:"grid_Y"`
+}
+type PlayerDataTroops struct {
+	TroopId   int    `json:"troop_id"`
+	TroopName string `json:"troop_name"`
+}
+
+type PlayerData struct {
+	Username     string                `json:"username"`
+	PasswordHash string                `json:"password_hash"`
+	Buildings    []PlayerDataBuildings `json:"buildings"`
+	Troops       []PlayerDataTroops    `json:"troops"`
+}

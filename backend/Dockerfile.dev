@@ -14,4 +14,4 @@ WORKDIR /app
 
 EXPOSE 8080
 
-CMD ["go", "run", "backend/main.go"]
+CMD ["go", "run", "./backend"]

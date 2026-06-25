@@ -81,6 +81,14 @@ export interface Projectile {
   type: "cannon" | "arrow";
 }
 
+const TROOP_ATTACK_SPEED: Record<string, number> = {
+  Barbarian: 1.0,
+  Archer:    1.0,
+  Giant:     2.0,
+  Goblin:    1.0,
+  Wizard:    1.5,
+};
+
 export default function BattlePage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
@@ -340,10 +348,38 @@ useEffect(() => {
             const dx   = (def.grid_x + 1.5) - t.gridX;
             const dy   = (def.grid_y + 1.5) - t.gridY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist <= def.range && dist < minDist) {
-              minDist    = dist;
-              closestIdx = idx;
+            if (dist <= t.range) {
+            const now = Date.now();
+            const speedInMs = (TROOP_ATTACK_SPEED[t.troopName] ?? 1.0) * 1000;
+
+            if (now - (t.lastAttackTime || 0) >= speedInMs) {
+              buildingHealthRef.current[def.id] -= t.damage;
+              
+              if (buildingHealthRef.current[def.id] <= 0) {
+                destroyBuilding(def.id);
+              }
+
+              if (t.range > 1.5) {
+                const troopCenter = troopPixel(t.gridX, t.gridY);
+                const bldCenter = gridCentre(def.grid_x, def.grid_y);
+                projectilesRef.current = [
+                  ...projectilesRef.current,
+                  {
+                    id: ++projIdRef.current,
+                    startX: troopCenter.x,
+                    startY: troopCenter.y,
+                    targetX: bldCenter.x,
+                    targetY: bldCenter.y,
+                    progress: 0,
+                    type: "arrow",
+                  },
+                ];
+              }
+
+              return { ...t, lastAttackTime: now };
             }
+            return t;
+          }
           });
 
           if (closestIdx !== -1) {

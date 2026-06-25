@@ -64,375 +64,65 @@ interface SelectionState {
 }
 
 const ALL_ITEMS = [
-  {
-    id: 3001,
-    name: "Town Hall",
-    level: 1,
-    cost_gold: 1,
-    cost_elixir: 0,
-    thelev: 1,
-    buildTime: 0,
-  },
-  {
-    id: 3002,
-    name: "Town Hall",
-    level: 2,
-    cost_gold: 1000,
-    cost_elixir: 0,
-    thelev: 1,
-    buildTime: 10,
-  },
-  {
-    id: 3003,
-    name: "Town Hall",
-    level: 3,
-    cost_gold: 4000,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 1800,
-  },
-  {
-    id: 3004,
-    name: "Town Hall",
-    level: 4,
-    cost_gold: 25000,
-    cost_elixir: 0,
-    thelev: 3,
-    buildTime: 10800,
-  },
-  {
-    id: 3011,
-    name: "Gold Storage",
-    level: 1,
-    cost_gold: 0,
-    cost_elixir: 300,
-    thelev: 1,
-    buildTime: 10,
-  },
-  {
-    id: 3012,
-    name: "Gold Storage",
-    level: 2,
-    cost_gold: 0,
-    cost_elixir: 750,
-    thelev: 2,
-    buildTime: 120,
-  },
-  {
-    id: 3013,
-    name: "Gold Storage",
-    level: 3,
-    cost_gold: 0,
-    cost_elixir: 1500,
-    thelev: 2,
-    buildTime: 300,
-  },
-  {
-    id: 3014,
-    name: "Gold Storage",
-    level: 4,
-    cost_gold: 0,
-    cost_elixir: 3000,
-    thelev: 4,
-    buildTime: 900,
-  },
-  {
-    id: 3021,
-    name: "Elixir Storage",
-    level: 1,
-    cost_gold: 300,
-    cost_elixir: 0,
-    thelev: 1,
-    buildTime: 10,
-  },
-  {
-    id: 3022,
-    name: "Elixir Storage",
-    level: 2,
-    cost_gold: 750,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 120,
-  },
-  {
-    id: 3023,
-    name: "Elixir Storage",
-    level: 3,
-    cost_gold: 1500,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 300,
-  },
-  {
-    id: 3024,
-    name: "Elixir Storage",
-    level: 4,
-    cost_gold: 3000,
-    cost_elixir: 0,
-    thelev: 4,
-    buildTime: 900,
-  },
-  {
-    id: 3031,
-    name: "Army Camp",
-    level: 1,
-    cost_gold: 0,
-    cost_elixir: 200,
-    thelev: 1,
-    buildTime: 60,
-  },
-  {
-    id: 3032,
-    name: "Army Camp",
-    level: 2,
-    cost_gold: 0,
-    cost_elixir: 2000,
-    thelev: 3,
-    buildTime: 18000,
-  },
-  {
-    id: 2011,
-    name: "Gold Mine",
-    level: 1,
-    cost_gold: 0,
-    cost_elixir: 150,
-    thelev: 1,
-    buildTime: 5,
-  },
-  {
-    id: 2012,
-    name: "Gold Mine",
-    level: 2,
-    cost_gold: 0,
-    cost_elixir: 300,
-    thelev: 2,
-    buildTime: 15,
-  },
-  {
-    id: 2013,
-    name: "Gold Mine",
-    level: 3,
-    cost_gold: 0,
-    cost_elixir: 700,
-    thelev: 2,
-    buildTime: 60,
-  },
-  {
-    id: 2014,
-    name: "Gold Mine",
-    level: 4,
-    cost_gold: 0,
-    cost_elixir: 1400,
-    thelev: 4,
-    buildTime: 300,
-  },
-  {
-    id: 2021,
-    name: "Elixir Collector",
-    level: 1,
-    cost_gold: 150,
-    cost_elixir: 0,
-    thelev: 1,
-    buildTime: 5,
-  },
-  {
-    id: 2022,
-    name: "Elixir Collector",
-    level: 2,
-    cost_gold: 300,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 15,
-  },
-  {
-    id: 2023,
-    name: "Elixir Collector",
-    level: 3,
-    cost_gold: 700,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 60,
-  },
-  {
-    id: 2024,
-    name: "Elixir Collector",
-    level: 4,
-    cost_gold: 1400,
-    cost_elixir: 0,
-    thelev: 4,
-    buildTime: 300,
-  },
-  {
-    id: 4001,
-    name: "Barracks",
-    level: 1,
-    cost_gold: 0,
-    cost_elixir: 100,
-    thelev: 1,
-    buildTime: 10,
-  },
-  {
-    id: 4002,
-    name: "Barracks",
-    level: 2,
-    cost_gold: 0,
-    cost_elixir: 500,
-    thelev: 2,
-    buildTime: 15,
-  },
-  {
-    id: 4003,
-    name: "Barracks",
-    level: 3,
-    cost_gold: 0,
-    cost_elixir: 2500,
-    thelev: 3,
-    buildTime: 120,
-  },
-  {
-    id: 4004,
-    name: "Barracks",
-    level: 4,
-    cost_gold: 0,
-    cost_elixir: 5000,
-    thelev: 4,
-    buildTime: 1800,
-  },
-  {
-    id: 1011,
-    name: "Cannon",
-    level: 1,
-    cost_gold: 250,
-    cost_elixir: 0,
-    thelev: 1,
-    buildTime: 5,
-  },
-  {
-    id: 1012,
-    name: "Cannon",
-    level: 2,
-    cost_gold: 1000,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 30,
-  },
-  {
-    id: 1013,
-    name: "Cannon",
-    level: 3,
-    cost_gold: 4000,
-    cost_elixir: 0,
-    thelev: 3,
-    buildTime: 120,
-  },
-  {
-    id: 1014,
-    name: "Cannon",
-    level: 4,
-    cost_gold: 16000,
-    cost_elixir: 0,
-    thelev: 4,
-    buildTime: 1200,
-  },
-  {
-    id: 1021,
-    name: "Archer Tower",
-    level: 1,
-    cost_gold: 1000,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 15,
-  },
-  {
-    id: 1022,
-    name: "Archer Tower",
-    level: 2,
-    cost_gold: 2000,
-    cost_elixir: 0,
-    thelev: 2,
-    buildTime: 120,
-  },
-  {
-    id: 1023,
-    name: "Archer Tower",
-    level: 3,
-    cost_gold: 5000,
-    cost_elixir: 0,
-    thelev: 3,
-    buildTime: 1200,
-  },
-  {
-    id: 1024,
-    name: "Archer Tower",
-    level: 4,
-    cost_gold: 20000,
-    cost_elixir: 0,
-    thelev: 4,
-    buildTime: 3600,
-  },
-  {
-    id: 1031,
-    name: "Wizard Tower",
-    level: 1,
-    cost_gold: 5000,
-    cost_elixir: 0,
-    thelev: 3,
-    buildTime: 1800,
-  },
-  {
-    id: 1032,
-    name: "Wizard Tower",
-    level: 2,
-    cost_gold: 25000,
-    cost_elixir: 0,
-    thelev: 4,
-    buildTime: 3600,
-  },
+  { id: 3001, name: "Town Hall", level: 1, cost_gold: 1, cost_elixir: 0, thelev: 1, buildTime: 0 },
+  { id: 3002, name: "Town Hall", level: 2, cost_gold: 1000, cost_elixir: 0, thelev: 1, buildTime: 10 },
+  { id: 3003, name: "Town Hall", level: 3, cost_gold: 4000, cost_elixir: 0, thelev: 2, buildTime: 1800 },
+  { id: 3004, name: "Town Hall", level: 4, cost_gold: 25000, cost_elixir: 0, thelev: 3, buildTime: 10800 },
+  { id: 3011, name: "Gold Storage", level: 1, cost_gold: 0, cost_elixir: 300, thelev: 1, buildTime: 10 },
+  { id: 3012, name: "Gold Storage", level: 2, cost_gold: 0, cost_elixir: 750, thelev: 2, buildTime: 120 },
+  { id: 3013, name: "Gold Storage", level: 3, cost_gold: 0, cost_elixir: 1500, thelev: 2, buildTime: 300 },
+  { id: 3014, name: "Gold Storage", level: 4, cost_gold: 0, cost_elixir: 3000, thelev: 4, buildTime: 900 },
+  { id: 3021, name: "Elixir Storage", level: 1, cost_gold: 300, cost_elixir: 0, thelev: 1, buildTime: 10 },
+  { id: 3022, name: "Elixir Storage", level: 2, cost_gold: 750, cost_elixir: 0, thelev: 2, buildTime: 120 },
+  { id: 3023, name: "Elixir Storage", level: 3, cost_gold: 1500, cost_elixir: 0, thelev: 2, buildTime: 300 },
+  { id: 3024, name: "Elixir Storage", level: 4, cost_gold: 3000, cost_elixir: 0, thelev: 4, buildTime: 900 },
+  { id: 3031, name: "Army Camp", level: 1, cost_gold: 0, cost_elixir: 200, thelev: 1, buildTime: 60 },
+  { id: 3032, name: "Army Camp", level: 2, cost_gold: 0, cost_elixir: 2000, thelev: 3, buildTime: 18000 },
+  { id: 2011, name: "Gold Mine", level: 1, cost_gold: 0, cost_elixir: 150, thelev: 1, buildTime: 5 },
+  { id: 2012, name: "Gold Mine", level: 2, cost_gold: 0, cost_elixir: 300, thelev: 2, buildTime: 15 },
+  { id: 2013, name: "Gold Mine", level: 3, cost_gold: 0, cost_elixir: 700, thelev: 2, buildTime: 60 },
+  { id: 2014, name: "Gold Mine", level: 4, cost_gold: 0, cost_elixir: 1400, thelev: 4, buildTime: 300 },
+  { id: 2021, name: "Elixir Collector", level: 1, cost_gold: 150, cost_elixir: 0, thelev: 1, buildTime: 5 },
+  { id: 2022, name: "Elixir Collector", level: 2, cost_gold: 300, cost_elixir: 0, thelev: 2, buildTime: 15 },
+  { id: 2023, name: "Elixir Collector", level: 3, cost_gold: 700, cost_elixir: 0, thelev: 2, buildTime: 60 },
+  { id: 2024, name: "Elixir Collector", level: 4, cost_gold: 1400, cost_elixir: 0, thelev: 4, buildTime: 300 },
+  { id: 4001, name: "Barracks", level: 1, cost_gold: 0, cost_elixir: 100, thelev: 1, buildTime: 10 },
+  { id: 4002, name: "Barracks", level: 2, cost_gold: 0, cost_elixir: 500, thelev: 2, buildTime: 15 },
+  { id: 4003, name: "Barracks", level: 3, cost_gold: 0, cost_elixir: 2500, thelev: 3, buildTime: 120 },
+  { id: 4004, name: "Barracks", level: 4, cost_gold: 0, cost_elixir: 5000, thelev: 4, buildTime: 1800 },
+  { id: 1011, name: "Cannon", level: 1, cost_gold: 250, cost_elixir: 0, thelev: 1, buildTime: 5 },
+  { id: 1012, name: "Cannon", level: 2, cost_gold: 1000, cost_elixir: 0, thelev: 2, buildTime: 30 },
+  { id: 1013, name: "Cannon", level: 3, cost_gold: 4000, cost_elixir: 0, thelev: 3, buildTime: 120 },
+  { id: 1014, name: "Cannon", level: 4, cost_gold: 16000, cost_elixir: 0, thelev: 4, buildTime: 1200 },
+  { id: 1021, name: "Archer Tower", level: 1, cost_gold: 1000, cost_elixir: 0, thelev: 2, buildTime: 15 },
+  { id: 1022, name: "Archer Tower", level: 2, cost_gold: 2000, cost_elixir: 0, thelev: 2, buildTime: 120 },
+  { id: 1023, name: "Archer Tower", level: 3, cost_gold: 5000, cost_elixir: 0, thelev: 3, buildTime: 1200 },
+  { id: 1024, name: "Archer Tower", level: 4, cost_gold: 20000, cost_elixir: 0, thelev: 4, buildTime: 3600 },
+  { id: 1031, name: "Wizard Tower", level: 1, cost_gold: 5000, cost_elixir: 0, thelev: 3, buildTime: 1800 },
+  { id: 1032, name: "Wizard Tower", level: 2, cost_gold: 25000, cost_elixir: 0, thelev: 4, buildTime: 3600 },
 ];
 
-const SHOP_ITEMS = ALL_ITEMS.filter((i) => i.level === 1 && i.id !== 3001);
+const SHOP_ITEMS = ALL_ITEMS.filter((i) => i.level === 1 && i.id !== 3001 && i.id !== 4001);
 
-const TROOP_CATALOG = [
-  {
-    id: 1,
-    name: "Barbarian",
-    level: 1,
-    housing_space: 1,
-    unlock_thall_level: 1,
-    cost_elixir: 10,
-  },
-  {
-    id: 2,
-    name: "Archer",
-    level: 1,
-    housing_space: 1,
-    unlock_thall_level: 2,
-    cost_elixir: 15,
-  },
-  {
-    id: 3,
-    name: "Giant",
-    level: 1,
-    housing_space: 5,
-    unlock_thall_level: 2,
-    cost_elixir: 80,
-  },
-  {
-    id: 4,
-    name: "Goblin",
-    level: 1,
-    housing_space: 1,
-    unlock_thall_level: 2,
-    cost_elixir: 12,
-  },
-  {
-    id: 5,
-    name: "Wizard",
-    level: 1,
-    housing_space: 4,
-    unlock_thall_level: 3,
-    cost_elixir: 60,
-  },
+const TROOP_CATALOG_ALL = [
+  { id: 101, name: "Barbarian", damage: 9, health: 45, housing_space: 1, level: 1, speed: 18, unlock_thall_level: 1, range: 1, cost_elixir: 0 },
+  { id: 102, name: "Barbarian", damage: 12, health: 54, housing_space: 1, level: 2, speed: 18, unlock_thall_level: 3, range: 1, cost_elixir: 10000 },
+  { id: 103, name: "Barbarian", damage: 15, health: 65, housing_space: 1, level: 3, speed: 18, unlock_thall_level: 4, range: 1, cost_elixir: 50000 },
+  { id: 104, name: "Barbarian", damage: 18, health: 85, housing_space: 1, level: 4, speed: 18, unlock_thall_level: 4, range: 1, cost_elixir: 130000 },
+  { id: 201, name: "Archer", damage: 8, health: 22, housing_space: 1, level: 1, speed: 24, unlock_thall_level: 2, range: 4, cost_elixir: 0 },
+  { id: 202, name: "Archer", damage: 10, health: 26, housing_space: 1, level: 2, speed: 24, unlock_thall_level: 3, range: 4, cost_elixir: 20000 },
+  { id: 203, name: "Archer", damage: 13, health: 29, housing_space: 1, level: 3, speed: 24, unlock_thall_level: 4, range: 4, cost_elixir: 80000 },
+  { id: 204, name: "Archer", damage: 16, health: 33, housing_space: 1, level: 4, speed: 24, unlock_thall_level: 4, range: 4, cost_elixir: 200000 },
+  { id: 301, name: "Goblin", damage: 11, health: 25, housing_space: 1, level: 1, speed: 32, unlock_thall_level: 2, range: 1, cost_elixir: 0 },
+  { id: 302, name: "Goblin", damage: 14, health: 30, housing_space: 1, level: 2, speed: 32, unlock_thall_level: 3, range: 1, cost_elixir: 45000 },
+  { id: 303, name: "Goblin", damage: 19, health: 36, housing_space: 1, level: 3, speed: 32, unlock_thall_level: 4, range: 1, cost_elixir: 100000 },
+  { id: 304, name: "Goblin", damage: 24, health: 50, housing_space: 1, level: 4, speed: 32, unlock_thall_level: 4, range: 1, cost_elixir: 500000 },
+  { id: 401, name: "Giant", damage: 24, health: 400, housing_space: 5, level: 1, speed: 12, unlock_thall_level: 2, range: 1, cost_elixir: 0 },
+  { id: 402, name: "Giant", damage: 30, health: 500, housing_space: 5, level: 2, speed: 12, unlock_thall_level: 3, range: 1, cost_elixir: 40000 },
+  { id: 403, name: "Giant", damage: 40, health: 600, housing_space: 5, level: 3, speed: 12, unlock_thall_level: 4, range: 1, cost_elixir: 150000 },
+  { id: 404, name: "Giant", damage: 48, health: 700, housing_space: 5, level: 4, speed: 12, unlock_thall_level: 4, range: 1, cost_elixir: 400000 },
+  { id: 501, name: "Wizard", damage: 75, health: 75, housing_space: 4, level: 1, speed: 16, unlock_thall_level: 4, range: 3, cost_elixir: 0 },
+  { id: 502, name: "Wizard", damage: 105, health: 90, housing_space: 4, level: 2, speed: 16, unlock_thall_level: 4, range: 3, cost_elixir: 120000 },
 ];
 
 const MAX_BUILDINGS: Record<string, Record<number, number>> = {
@@ -537,9 +227,7 @@ function ResourceBar({
   );
 }
 
-// 🔥 FIX 1: Allow finishTime to be string OR number so it works flawlessly with Go timestamps
 function ConstructionTimer({ finishTime }: { finishTime: string | number }) {
-  // 🔥 Parse the time gracefully to ensure we get absolute milliseconds
   const targetTimeMs = typeof finishTime === "string" ? new Date(finishTime).getTime() : finishTime;
 
   const [secsLeft, setSecsLeft] = useState(
@@ -553,7 +241,7 @@ function ConstructionTimer({ finishTime }: { finishTime: string | number }) {
       1000,
     );
     return () => clearInterval(iv);
-  }, [targetTimeMs]); // 🔥 Depend on the parsed ms value
+  }, [targetTimeMs]);
 
   return (
     <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-amber-300">
@@ -945,12 +633,14 @@ function ActionButton({
 }
 
 function TrainTroopsModal({
+  troopCatalog,
   currentTroops,
   currentTHLevel,
   housing_space,
   onClose,
   onTrain,
 }: {
+  troopCatalog: typeof TROOP_CATALOG_ALL;
   currentTroops: TroopsSync[] | null;
   currentTHLevel: number;
   housing_space: number;
@@ -968,21 +658,13 @@ function TrainTroopsModal({
   });
   const [training, setTraining] = useState(false);
 
-  const liveLevel = (troopName: string): number => {
-    return (
-      safeTroops.find((t) => t.name === troopName)?.level ??
-      TROOP_CATALOG.find((c) => c.name === troopName)?.level ??
-      1
-    );
-  };
-
   const totalUsed = Array.from(draft.entries()).reduce((sum, [name, qty]) => {
-    const cat = TROOP_CATALOG.find((t) => t.name === name);
+    const cat = troopCatalog.find((t) => t.name === name);
     return sum + qty * (cat?.housing_space ?? 0);
   }, 0);
 
   const adjust = (name: string, delta: number) => {
-    const cat = TROOP_CATALOG.find((t) => t.name === name);
+    const cat = troopCatalog.find((t) => t.name === name);
     if (!cat) return;
     const current = draft.get(name) ?? 0;
     const next = Math.max(0, current + delta);
@@ -1044,10 +726,9 @@ function TrainTroopsModal({
         </div>
 
         <div className="grid grid-cols-5 gap-3 p-4">
-          {TROOP_CATALOG.map((troop) => {
+          {troopCatalog.map((troop) => {
             const locked = troop.unlock_thall_level > currentTHLevel;
             const qty = draft.get(troop.name) ?? 0;
-            const level = liveLevel(troop.name);
 
             return (
               <div
@@ -1067,7 +748,7 @@ function TrainTroopsModal({
                 </span>
 
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Lv {level}
+                  Lv {troop.level}
                 </span>
 
                 <span className="text-white/40 text-[9px]">
@@ -1151,23 +832,21 @@ function TrainTroopsModal({
 }
 
 function UpgradeTroopsModal({
+  troopCatalog,
+  troopUpgrade,
   currentTHLevel,
-  currentTroops,
+  currentElixir,
   onClose,
   onUpgrade,
 }: {
+  troopCatalog: typeof TROOP_CATALOG_ALL;
+  troopUpgrade: typeof TROOP_CATALOG_ALL;
   currentTHLevel: number;
-  currentTroops: TroopsSync[] | null;
+  currentElixir: number;
   onClose: () => void;
   onUpgrade: (troopName: string) => Promise<void>;
 }) {
-  const safeTroops = currentTroops ?? [];
   const [upgrading, setUpgrading] = useState<string | null>(null);
-
-  const liveLevel = (troopName: string): number =>
-    safeTroops.find((t) => t.name === troopName)?.level ??
-    TROOP_CATALOG.find((c) => c.name === troopName)?.level ??
-    1;
 
   const handleUpgrade = async (name: string) => {
     setUpgrading(name);
@@ -1202,17 +881,19 @@ function UpgradeTroopsModal({
         </p>
 
         <div className="grid grid-cols-5 gap-3 p-4">
-          {TROOP_CATALOG.map((troop) => {
+          {troopUpgrade.map((troop) => {
+            const currentItem = troopCatalog.find((t) => t.name === troop.name);
             const locked = troop.unlock_thall_level > currentTHLevel;
+            const isMax = currentItem?.id === troop.id && (currentItem?.level ?? 1) > 1;
+            const cantAfford = currentElixir < troop.cost_elixir;
             const isUpgrading = upgrading === troop.name;
-            const level = liveLevel(troop.name);
 
             return (
               <div
                 key={troop.id}
                 className={[
                   "flex flex-col items-center gap-2 p-2 rounded-xl border transition-colors",
-                  locked
+                  locked || isMax
                     ? "border-white/5 opacity-40"
                     : "border-white/10 bg-white/5",
                 ].join(" ")}
@@ -1223,22 +904,28 @@ function UpgradeTroopsModal({
                 </span>
 
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Lv {level}
+                  {isMax ? `Lv ${troop.level} (MAX)` : `Lv ${troop.level}`}
                 </span>
 
-                <span className="text-purple-300 text-[9px] flex items-center gap-0.5">
-                  <Zap size={8} />
-                  {troop.cost_elixir.toLocaleString()}
-                </span>
+                {!isMax && (
+                  <span className="text-purple-300 text-[9px] flex items-center gap-0.5">
+                    <Zap size={8} />
+                    {troop.cost_elixir.toLocaleString()}
+                  </span>
+                )}
 
-                {locked ? (
+                {isMax ? (
+                  <span className="text-[9px] text-emerald-400 font-bold mt-auto">
+                    MAX
+                  </span>
+                ) : locked ? (
                   <span className="text-[9px] text-red-400 font-bold mt-auto">
                     TH{troop.unlock_thall_level}+
                   </span>
                 ) : (
                   <button
                     onClick={() => handleUpgrade(troop.name)}
-                    disabled={isUpgrading}
+                    disabled={isUpgrading || cantAfford}
                     className="w-full mt-auto bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black text-[10px] font-bold py-1 rounded-lg active:scale-95 transition-all"
                   >
                     {isUpgrading ? "…" : "Upgrade"}
@@ -1390,9 +1077,7 @@ export function TroopSprite({ name }: { name: string }) {
 type ActiveModal = "shop" | "train" | "upgrade-troops" | "battle" | null;
 
 export default function VillageScreen() {
-  const [playerData, setPlayerData] = useState<GameDataSyncResponse | null>(
-    null,
-  );
+  const [playerData, setPlayerData] = useState<GameDataSyncResponse | null>(null);
   const [isSyncing, setIsSyncing] = useState(true);
   const [placementMode, setPlacementMode] = useState<{
     building_id: number;
@@ -1407,8 +1092,91 @@ export default function VillageScreen() {
     opponent: string;
     name: string;
   } | null>(null);
-  const [housingSp, setHousingSp] = useState(0);
+  // Dynamically calculate housing space based on built Army Camps and their levels
+  const housingSp = playerData?.buildings
+    .filter((b) => (b.name === "ArmyCamp" || b.name === "Army Camp") && b.is_built)
+    .reduce((sum, camp) => sum + (10 + (camp.level * 10)), 0) || 20; // Fallback to 20
   const toastIdRef = useRef(0);
+
+  // Dynamic troop catalogs populated from your backend
+  const initialCatalog = TROOP_CATALOG_ALL.filter((t) => t.level === 1);
+  const [troopCatalog, setTroopCatalog] = useState<typeof TROOP_CATALOG_ALL>(initialCatalog);
+  const [troopUpgrade, setTroopUpgrade] = useState<typeof TROOP_CATALOG_ALL>(initialCatalog);
+
+  const fetchTroopLevels = useCallback(async () => {
+    const token = localStorage.getItem("JWTtoken");
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/village/troop/levelsync`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const newCatalog: typeof TROOP_CATALOG_ALL = [];
+        const newUpgrade: typeof TROOP_CATALOG_ALL = [];
+
+        const baseNames = ["Barbarian", "Archer", "Goblin", "Giant", "Wizard"];
+        const baseIds: Record<string, number> = {
+          Barbarian: 100,
+          Archer: 200,
+          Goblin: 300,
+          Giant: 400,
+          Wizard: 500,
+        };
+
+        baseNames.forEach((name) => {
+          const lowerName = name.toLowerCase();
+          
+          // 1. Safely grab the value, default to the base un-upgraded ID
+          let val = data ? data[lowerName] : undefined;
+
+          // 2. BACKWARDS COMPATIBILITY: If the DB returned an old ID like '1' or '2', convert it to '101'
+          if (val !== undefined && val < 100) {
+            val = baseIds[name] + val;
+          }
+
+          if (val === undefined || val % 100 === 0) {
+            // Not yet unlocked: grab the Level 1 version (e.g., 101)
+            const item = TROOP_CATALOG_ALL.find((t) => t.id === baseIds[name] + 1);
+            if (item) {
+              newCatalog.push(item);
+              newUpgrade.push(item);
+            }
+          } else {
+            // Already unlocked (e.g., 102, 204)
+            const currentItem = TROOP_CATALOG_ALL.find((t) => t.id === val);
+            
+            if (currentItem) {
+              newCatalog.push(currentItem);
+
+              let upgradeItem = TROOP_CATALOG_ALL.find((t) => t.id === val + 1);
+              if (!upgradeItem) {
+                // No further upgrades = Stick to max
+                upgradeItem = currentItem;
+              }
+              newUpgrade.push(upgradeItem);
+            } else {
+              // FAILSAFE: If the DB returns a totally invalid ID, fallback to Level 1 to prevent crashes
+              const fallbackItem = TROOP_CATALOG_ALL.find((t) => t.id === baseIds[name] + 1);
+              if (fallbackItem) {
+                 newCatalog.push(fallbackItem);
+                 newUpgrade.push(fallbackItem);
+              }
+            }
+          }
+        });
+
+        setTroopCatalog(newCatalog);
+        setTroopUpgrade(newUpgrade);
+      }
+    } catch (error) {
+      console.error("Failed to sync troop levels", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTroopLevels();
+  }, [fetchTroopLevels]);
 
   const showToast = useCallback(
     (text: string, kind: ToastMsg["kind"] = "info") => {
@@ -1445,10 +1213,7 @@ export default function VillageScreen() {
         if (!res.ok) throw new Error("sync failed");
         const data: GameDataSyncResponse = await res.json();
         setPlayerData(data);
-        const camps = data.buildings.filter(
-          (b) => b.name === "ArmyCamp" && b.is_built,
-        );
-        setHousingSp(camps.length * 20 || 20);
+        // 🔥 REMOVED THE HARDCODED HOUSING SPACE LOGIC HERE
       } catch {
         showToast("Failed to connect to Bastion server", "error");
       } finally {
@@ -1457,7 +1222,6 @@ export default function VillageScreen() {
     })();
   }, []);
 
-  // 🔥 FIX 2: Safely parse the backend date string into a real JS timestamp for autocomplete comparisons
   useEffect(() => {
     if (!playerData) return;
     const iv = setInterval(() => {
@@ -1553,8 +1317,7 @@ export default function VillageScreen() {
         grid_x: gridX,
         grid_y: gridY,
         is_built: false,
-        // Using a number here locally optimistically. The backend will sync it as a string on refresh.
-        finish_time: Date.now() + shopItem.buildTime * 1000, 
+        finish_time: Date.now() + shopItem.buildTime * 1000,
       };
       setPlayerData((prev) => {
         if (!prev) return prev;
@@ -1749,7 +1512,7 @@ export default function VillageScreen() {
           .filter((t) => t.quantity > 0)
           .map((t) => {
             const existing = prev.troops?.find((e) => e.name === t.troop_name);
-            const cat = TROOP_CATALOG.find((c) => c.name === t.troop_name);
+            const cat = troopCatalog.find((c) => c.name === t.troop_name);
             return {
               troop_id: cat?.id ?? 0,
               name: t.troop_name,
@@ -1790,6 +1553,9 @@ export default function VillageScreen() {
         };
       });
       showToast(`${troopName} upgraded!`, "success");
+      
+      // Sync fresh mapping arrays from backend after a successful upgrade
+      await fetchTroopLevels();
     } catch {
       showToast("Upgrade failed", "error");
     }
@@ -1809,7 +1575,7 @@ export default function VillageScreen() {
       }
       if (!res.ok) throw new Error();
       const data = await res.json();
-      console.log("matchmake:", data)
+      console.log("matchmake:", data);
       setBattleOpponent({ opponent: data.opponent, name: data.name });
       setActiveModal("battle");
     } catch {
@@ -1989,6 +1755,7 @@ export default function VillageScreen() {
 
       {activeModal === "train" && (
         <TrainTroopsModal
+          troopCatalog={troopCatalog}
           currentTroops={playerData.troops}
           currentTHLevel={currentTHLevel}
           housing_space={housingSp}
@@ -1999,8 +1766,10 @@ export default function VillageScreen() {
 
       {activeModal === "upgrade-troops" && (
         <UpgradeTroopsModal
+          troopCatalog={troopCatalog}
+          troopUpgrade={troopUpgrade}
           currentTHLevel={currentTHLevel}
-          currentTroops={playerData.troops}
+          currentElixir={stats.elixir}
           onClose={() => setActiveModal(null)}
           onUpgrade={handleUpgradeTroop}
         />
