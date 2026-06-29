@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: docker server migrate 
+.PHONY: docker server migrate seed
 
 ARGS = $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 
@@ -14,3 +14,5 @@ server:
 migrate: 
 	migrate -path ./backend/internal/database/migrations -database "$(DB_URL)" ${ARGS}
 
+seed:
+	cd backend && go run fakePlayers.go

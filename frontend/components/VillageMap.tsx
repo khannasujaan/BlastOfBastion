@@ -176,36 +176,36 @@ export default function VillageMap({
         g.addChild(con);
       }
 
-      const uiLayer = new PIXI.Graphics();
-      uiLayer.beginFill(0x000000, 0.65);
-      uiLayer.drawRoundedRect(0, 0, 18, 14, 3);
-      uiLayer.endFill();
-      uiLayer.x = px - 20;
-      uiLayer.y = 3;
-      g.addChild(uiLayer);
+      // const uiLayer = new PIXI.Graphics();
+      // uiLayer.beginFill(0x000000, 0.65);
+      // uiLayer.drawRoundedRect(0, 0, 18, 14, 3);
+      // uiLayer.endFill();
+      // uiLayer.x = px - 20;
+      // uiLayer.y = 3;
+      // g.addChild(uiLayer);
 
-      const lvlText = new PIXI.Text(`L${b.level}`, {
-        fontSize: 9,
-        fill: 0xffffff,
-        fontWeight: "bold",
-      });
-      lvlText.x = uiLayer.x + 2;
-      lvlText.y = uiLayer.y + 2;
-      g.addChild(lvlText);
+      // const lvlText = new PIXI.Text(`L${b.level}`, {
+      //   fontSize: 9,
+      //   fill: 0xffffff,
+      //   fontWeight: "bold",
+      // });
+      // lvlText.x = uiLayer.x + 2;
+      // lvlText.y = uiLayer.y + 2;
+      // g.addChild(lvlText);
 
-      const nameTag = new PIXI.Text(b.name.replace(/([A-Z])/g, " $1").trim(), {
-        fontSize: 10,
-        fill: 0xffffff,
-        fontWeight: "bold",
-        stroke: 0x000000,
-        strokeThickness: 3,
-        wordWrap: true,
-        wordWrapWidth: px - 4,
-        align: "center",
-      });
-      nameTag.x = (px - nameTag.width) / 2;
-      nameTag.y = px - nameTag.height - 3;
-      g.addChild(nameTag);
+      // const nameTag = new PIXI.Text(b.name.replace(/([A-Z])/g, " $1").trim(), {
+      //   fontSize: 10,
+      //   fill: 0xffffff,
+      //   fontWeight: "bold",
+      //   stroke: 0x000000,
+      //   strokeThickness: 3,
+      //   wordWrap: true,
+      //   wordWrapWidth: px - 4,
+      //   align: "center",
+      // });
+      // nameTag.x = (px - nameTag.width) / 2;
+      // nameTag.y = px - nameTag.height - 3;
+      // g.addChild(nameTag);
 
       g.x = (b.grid_x - 1) * TILE;
       g.y = (b.grid_y - 1) * TILE;

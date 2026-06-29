@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package main
 
 import (
@@ -10,6 +13,11 @@ import (
 	"github.com/khannasujaan/BlastOfBastion/internal/dto"
 )
 
+func main() {
+	SeedAllPlayers()
+	log.Println("Seeding complete. Exiting.")
+}
+
 func Seed(playerData dto.PlayerData) error {
 	tx, err := database.Db.Begin()
 	if err != nil {
@@ -20,6 +28,7 @@ func Seed(playerData dto.PlayerData) error {
 	playerQuery := `
 	INSERT INTO players (username, password_hash) 
 	VALUES ($1, $2) 
+	ON CONFLICT (username) DO NOTHING
 	RETURNING id
 	`
 	var id string

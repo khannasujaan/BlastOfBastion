@@ -46,21 +46,26 @@ async function registerUser(fields: FormFields): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(fields),
   });
-
   if (!res.ok) {
-    // Try to parse a JSON error body; fall back to status text
     let message = `Registration failed (${res.status}).`;
     try {
-      const body = await res.json();
-      if (body?.error || body?.message) {
-        message = body.error ?? body.message;
+      const rawText = await res.text();
+      if (rawText) {
+        try {
+          const body = JSON.parse(rawText);
+          if (body?.error || body?.message) {
+            message = body.error ?? body.message;
+          } else {
+            message = rawText;
+          }
+        } catch {
+          message = rawText;
+        }
       }
     } catch {
-      // ignore parse error
     }
     throw new Error(message);
   }
-  // 201 Created — no body expected
 }
 
 

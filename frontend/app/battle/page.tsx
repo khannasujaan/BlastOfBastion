@@ -191,7 +191,7 @@ export default function BattlePage() {
     buildingMaxHpRef.current  = maxHp;
   }, [playerData]);
 
-useEffect(() => {
+  useEffect(() => {
     if (!playerData || !startTime || endBattle) return;
     const iv = setInterval(() => {
       const now         = Date.now();
@@ -348,38 +348,10 @@ useEffect(() => {
             const dx   = (def.grid_x + 1.5) - t.gridX;
             const dy   = (def.grid_y + 1.5) - t.gridY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist <= t.range) {
-            const now = Date.now();
-            const speedInMs = (TROOP_ATTACK_SPEED[t.troopName] ?? 1.0) * 1000;
-
-            if (now - (t.lastAttackTime || 0) >= speedInMs) {
-              buildingHealthRef.current[def.id] -= t.damage;
-              
-              if (buildingHealthRef.current[def.id] <= 0) {
-                destroyBuilding(def.id);
-              }
-
-              if (t.range > 1.5) {
-                const troopCenter = troopPixel(t.gridX, t.gridY);
-                const bldCenter = gridCentre(def.grid_x, def.grid_y);
-                projectilesRef.current = [
-                  ...projectilesRef.current,
-                  {
-                    id: ++projIdRef.current,
-                    startX: troopCenter.x,
-                    startY: troopCenter.y,
-                    targetX: bldCenter.x,
-                    targetY: bldCenter.y,
-                    progress: 0,
-                    type: "arrow",
-                  },
-                ];
-              }
-
-              return { ...t, lastAttackTime: now };
+            if (dist <= def.range && dist < minDist) {
+              minDist    = dist;
+              closestIdx = idx;
             }
-            return t;
-          }
           });
 
           if (closestIdx !== -1) {
@@ -449,8 +421,7 @@ useEffect(() => {
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist <= troop.range) {
-            const COOLDOWN_MS = 1000;
-            if (now - (troop.lastAttackTime || 0) >= COOLDOWN_MS) {
+            if (now - (troop.lastAttackTime || 0) >= 1000) {
               buildingHealthRef.current[targetB.id] -= troop.damage;
               if (buildingHealthRef.current[targetB.id] <= 0) {
                 destroyBuilding(targetB.id);
@@ -610,6 +581,18 @@ useEffect(() => {
         <span className={`font-bold text-sm ${destructionPercentage >= 50 ? "text-green-400" : "text-red-400"}`}>
           {destructionPercentage}%
         </span>
+      </div>
+      <div className="absolute bottom-4 right-4 z-10 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-6 py-2 flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold tracking-widest text-yellow-500 uppercase">
+              Available Gold: {(totalGoldStorages==0)?(0):(2/10*playerData.gold).toLocaleString()}
+            </span>
+            <span className="text-[10px] font-bold tracking-widest text-purple-400 uppercase">
+              Available Elixir: {(totalElixirStorages==0)?(0):(2/10*playerData.elixir).toLocaleString()}
+            </span>
+          </div>
+        </div>
       </div>
 
       <AttackWrapper

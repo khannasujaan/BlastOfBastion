@@ -61,6 +61,7 @@ interface SelectionState {
   level: number;
   is_built: boolean;
   is_barracks: boolean;
+  finish_time?: number | null;
 }
 
 const ALL_ITEMS = [
@@ -161,6 +162,26 @@ function formatTime(seconds: number): string {
   return `${s}s`;
 }
 
+function CollectionHint({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="absolute top-15 right-60 z-30 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="bg-amber-500/90 text-black px-4 py-3 rounded-xl shadow-2xl border border-amber-300 w-48 text-center relative">
+        <button 
+          onClick={onClose} 
+          className="absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5 hover:bg-gray-800"
+        >
+          <X size={12} />
+        </button>
+        <p className="text-xs font-bold leading-tight">
+          Click these icons to collect your resources! 💰
+        </p>
+      </div>
+      {/* Visual arrow pointer (optional) */}
+      <div className="absolute -right-2 top-2 w-4 h-4 bg-amber-500 rotate-45" />
+    </div>
+  );
+}
+
 export function ToastStack({ toasts }: { toasts: ToastMsg[] }) {
   const colors: Record<string, string> = {
     success: "bg-emerald-700 border-emerald-500",
@@ -227,7 +248,7 @@ function ResourceBar({
   );
 }
 
-function ConstructionTimer({ finishTime }: { finishTime: string | number }) {
+function ConstructionTimer({ finishTime, display }: { finishTime: string | number, display: boolean }) {
   const targetTimeMs = typeof finishTime === "string" ? new Date(finishTime).getTime() : finishTime;
 
   const [secsLeft, setSecsLeft] = useState(
@@ -242,9 +263,9 @@ function ConstructionTimer({ finishTime }: { finishTime: string | number }) {
     );
     return () => clearInterval(iv);
   }, [targetTimeMs]);
-
+  if (!display) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-amber-300">
+    <span className={`inline-flex items-center gap-1 text-[11px] font-mono font-bold text-amber-300`}>
       <Clock size={11} /> {formatTime(secsLeft)}
     </span>
   );
@@ -525,16 +546,19 @@ function SelectionPanel({
   onClose,
   onUpgrade,
   onTrainTroops,
+  currentTHLevel,
 }: {
   sel: SelectionState;
   onClose: () => void;
   onUpgrade: () => void;
   onTrainTroops: () => void;
+  currentTHLevel: number;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const nextItem = ALL_ITEMS.find((i) => i.id === sel.building_id + 1);
   const isMaxLevel = !nextItem;
+  const canUpgrade = nextItem ? currentTHLevel >= nextItem.thelev : false;
   const isBarracks = sel.name.startsWith("Barrack");
 
   return (
@@ -550,19 +574,20 @@ function SelectionPanel({
             {!sel.is_built && (
               <span className="text-amber-400 text-[11px] font-mono flex items-center gap-1 mt-0.5">
                 <Clock size={10} /> Under construction
+                <ConstructionTimer finishTime={sel.finish_time!} display={true} />
               </span>
             )}
           </div>
 
           <div className="flex gap-2">
-            <ActionButton
+            {/* <ActionButton
               icon={<Info size={14} />}
               label="Info"
               color="bg-blue-600 hover:bg-blue-500"
               onClick={() => {}}
-            />
+            /> */}
 
-            {!isMaxLevel && sel.is_built && (
+            {/* {!isMaxLevel && sel.is_built && (
               <ActionButton
                 icon={<ArrowUpCircle size={14} />}
                 label="Upgrade"
@@ -574,6 +599,19 @@ function SelectionPanel({
               <span className="text-[10px] text-emerald-400 font-bold px-2 flex items-center">
                 MAX
               </span>
+            )} */}
+            {!isMaxLevel && sel.is_built && canUpgrade && (
+              <ActionButton
+                icon={<ArrowUpCircle size={14} />}
+                label="Upgrade"
+                color="bg-amber-500 hover:bg-amber-400"
+                onClick={() => setShowConfirm(true)}
+              />
+            )}
+            {!isMaxLevel && sel.is_built && !canUpgrade && (
+               <span className="text-[10px] text-red-400 font-bold px-2 flex items-center">
+                 TH{nextItem.thelev}+
+               </span>
             )}
 
             {isBarracks && sel.is_built && (
@@ -1102,6 +1140,7 @@ export default function VillageScreen() {
   const initialCatalog = TROOP_CATALOG_ALL.filter((t) => t.level === 1);
   const [troopCatalog, setTroopCatalog] = useState<typeof TROOP_CATALOG_ALL>(initialCatalog);
   const [troopUpgrade, setTroopUpgrade] = useState<typeof TROOP_CATALOG_ALL>(initialCatalog);
+  const [showHint, setShowHint] = useState(false);
 
   const fetchTroopLevels = useCallback(async () => {
     const token = localStorage.getItem("JWTtoken");
@@ -1564,6 +1603,13 @@ export default function VillageScreen() {
   async function handleBattle() {
     const token = getToken();
     if (!token) return;
+
+    const hasArmy = playerData?.troops && playerData.troops.some(t => t.quantity > 0);
+    if (!hasArmy) {
+      showToast("No army to fight with", "error");
+      return;
+    }
+
     showToast("Searching for opponents…", "info");
     try {
       const res = await fetch(`${API_BASE}/battle/matchmake`, {
@@ -1582,6 +1628,19 @@ export default function VillageScreen() {
       showToast("Matchmaking failed", "error");
     }
   }
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem("has_seen_collection_hint");
+    if (!hasSeen) {
+      const timer = setTimeout(() => setShowHint(true), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const dismissHint = () => {
+    setShowHint(false);
+    localStorage.setItem("has_seen_collection_hint", "true");
+  };
 
   const selectBuilding = useCallback(
     (buildingId: number | null, gridX?: number, gridY?: number) => {
@@ -1605,6 +1664,7 @@ export default function VillageScreen() {
         level: b.level,
         is_built: b.is_built,
         is_barracks: b.name.startsWith("Barrack"),
+        finish_time: b.finish_time,
       });
     },
     [playerData],
@@ -1651,22 +1711,23 @@ export default function VillageScreen() {
           {playerData.buildings
             .filter((b) => !b.is_built && b.finish_time)
             .map((b) => (
-              <div
-                key={b.id}
-                className="bg-black/60 backdrop-blur-sm border border-amber-500/30 rounded-lg px-3 py-1.5 flex items-center gap-2"
-              >
-                <BuildingSprite name={b.name} size={20} />
-                <span className="text-white text-xs font-semibold">
-                  {b.name}
-                </span>
-                <ConstructionTimer finishTime={b.finish_time!} />
-              </div>
+              // <div
+              //   key={b.id}
+              //   className="bg-black/60 backdrop-blur-sm border border-amber-500/30 rounded-lg px-3 py-1.5 flex items-center gap-2"
+              // >
+              //   <BuildingSprite name={b.name} size={20} />
+              //   <span className="text-white text-xs font-semibold">
+              //     {b.name}
+              //   </span>
+                <ConstructionTimer finishTime={b.finish_time!} display={false} />
+              // </div> 
             ))}
         </div>
       )}
 
       <div className="absolute inset-0 z-10 pointer-events-none">
         <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-auto">
+        {showHint && <CollectionHint onClose={dismissHint} />}
           <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2.5 flex flex-col gap-2">
             <ResourceBar
               label="Gold"
@@ -1786,6 +1847,7 @@ export default function VillageScreen() {
         <SelectionPanel
           sel={selection}
           onClose={() => setSelection(null)}
+          currentTHLevel={currentTHLevel}
           onUpgrade={() =>
             handleUpgradeBuilding(
               selection.building_id,
