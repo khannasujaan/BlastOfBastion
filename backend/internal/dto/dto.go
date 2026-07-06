@@ -168,3 +168,34 @@ type PlayerData struct {
 	Buildings    []PlayerDataBuildings `json:"buildings"`
 	Troops       []PlayerDataTroops    `json:"troops"`
 }
+
+type UpgradeStatsResponse struct {
+	CurrentLevel  int `json:"current_level"`
+	NextLevel     int `json:"next_level"`
+	CostGold      int `json:"cost_gold"`
+	CostElixir    int `json:"cost_elixir"`
+	CurrentHealth int `json:"current_health"`
+	NextHealth    int `json:"next_health"`
+	Time          int `json:"time"`
+
+	DefenseStats    *DefenseStats    `json:"defense_stats,omitempty"`
+	StorageStats    *StorageStats    `json:"storage_stats,omitempty"`
+	ProductionStats *ProductionStats `json:"production_stats,omitempty"`
+}
+
+type DefenseStats struct {
+	CurrentRange int `json:"current_range"`
+	NextRange    int `json:"next_range"`
+	CurrentDmg   int `json:"current_dmg"`
+	NextDmg      int `json:"next_dmg"`
+}
+
+type StorageStats struct {
+	CurrentCapacity int `json:"current_capacity"`
+	NextCapacity    int `json:"next_capacity"`
+}
+
+type ProductionStats struct {
+	CurrentGen int `json:"current_gen"`
+	NextGen    int `json:"next_gen"`
+}

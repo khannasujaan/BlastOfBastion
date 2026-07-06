@@ -23,6 +23,7 @@ func Routes() http.Handler {
 	mux.HandleFunc("/village/building/move", middleware.VerifyJWT(controller.MoveBuiling))
 	mux.HandleFunc("/village/building/upgrade-start", middleware.VerifyJWT(controller.UpgradeStartBuilding))
 	mux.HandleFunc("/village/building/upgrade-finish", middleware.VerifyJWT(controller.UpgradeFinishBuilding))
+	mux.HandleFunc("/village/building/upgrade-info", middleware.VerifyJWT(controller.GetUpgradeStatsHandler))
 	mux.HandleFunc("/village/collect/gold", middleware.VerifyJWT(controller.CollectGold()))
 	mux.HandleFunc("/village/collect/elixir", middleware.VerifyJWT(controller.CollectElixir()))
 	mux.HandleFunc("/village/troop/train", middleware.VerifyJWT(controller.TrainTroop))

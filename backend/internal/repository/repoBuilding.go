@@ -355,3 +355,53 @@ func UpgradeBuildingFinish(id uuid.UUID, BuildReq dto.BuildUpgradeFinishRequest)
 
 	return nil
 }
+
+func GetUpgradeStats(id int) (dto.UpgradeStatsResponse, error) {
+	var res dto.UpgradeStatsResponse
+
+	query := `
+        SELECT c1.level, c2.level, c1.base_health, c2.base_health, c2.cost_gold, c2.cost_elixir, c2.build_time
+        FROM building_catalog c1
+        JOIN building_catalog c2 ON c2.id = c1.id + 1
+        WHERE c1.id = $1`
+
+	err := database.Db.QueryRow(query, id).Scan(
+		&res.CurrentLevel, &res.NextLevel, &res.CurrentHealth, &res.NextHealth,
+		&res.CostGold, &res.CostElixir, &res.Time,
+	)
+	if err != nil {
+		return res, err
+	}
+
+	category := id / 1000
+	switch category {
+	case 1:
+		query := `SELECT d1.range, d2.range, d1.damage_per_attack, d2.damage_per_attack
+                  FROM defense_buildings d1
+                  JOIN defense_buildings d2 ON d2.building_id = d1.building_id + 1
+                  WHERE d1.building_id = $1`
+		var ds dto.DefenseStats
+		err = database.Db.QueryRow(query, id).Scan(&ds.CurrentRange, &ds.NextRange, &ds.CurrentDmg, &ds.NextDmg)
+		res.DefenseStats = &ds
+
+	case 2:
+		query := `SELECT g1.gen_per_hour, g2.gen_per_hour
+				  FROM resources_gen g1
+				  JOIN resources_gen g2 ON g2.building_id = g1.building_id + 1
+				  WHERE g1.building_id = $1`
+		var ps dto.ProductionStats
+		err = database.Db.QueryRow(query, id).Scan(&ps.CurrentGen, &ps.NextGen)
+		res.ProductionStats = &ps
+
+	case 3:
+		query := `SELECT s1.storage, s2.storage
+                  FROM resource_storage s1
+                  JOIN resource_storage s2 ON s2.building_id = s1.building_id + 1
+                  WHERE s1.building_id = $1`
+		var ss dto.StorageStats
+		err = database.Db.QueryRow(query, id).Scan(&ss.CurrentCapacity, &ss.NextCapacity)
+		res.StorageStats = &ss
+	}
+
+	return res, err
+}

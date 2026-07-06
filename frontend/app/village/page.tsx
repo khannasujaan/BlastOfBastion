@@ -16,6 +16,7 @@ import {
   Users,
   Swords,
   Clock,
+  Target,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -62,6 +63,18 @@ interface SelectionState {
   is_built: boolean;
   is_barracks: boolean;
   finish_time?: number | null;
+}
+interface UpgradeStats {
+  current_level: number;
+  next_level: number;
+  cost_gold: number;
+  cost_elixir: number;
+  current_health: number;
+  next_health: number;
+  time : number;
+  defense_stats?: { current_range: number; next_range: number; current_dmg: number; next_dmg: number };
+  storage_stats?: { current_capacity: number; next_capacity: number };
+  production_stats?: { current_gen: number; next_gen: number };
 }
 
 const ALL_ITEMS = [
@@ -446,95 +459,116 @@ function BuildShop({
 
 function UpgradeConfirmModal({
   sel,
-  nextItem,
   onConfirm,
   onCancel,
 }: {
   sel: SelectionState;
-  nextItem: (typeof ALL_ITEMS)[number];
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [stats, setStats] = useState<UpgradeStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/village/building/upgrade-info?id=${sel.building_id}`, {
+          headers: authHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (e) {
+        console.error("Failed to load upgrade stats", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, [sel.building_id]);
+
+  if (loading) return <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">Loading...</div>;
+  if (!stats) return null;
+
   return (
-    <div
-      className="absolute inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-[#1a1f2e] border border-white/15 rounded-2xl shadow-2xl w-80 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="absolute inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto" onClick={onCancel}>
+      <div className="bg-[#1a1f2e] border border-white/15 rounded-2xl shadow-2xl w-80 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-5 py-3 flex items-center gap-2">
           <ArrowUpCircle size={16} className="text-amber-400" />
-          <span className="text-white font-bold text-sm tracking-wide">
-            Confirm Upgrade
-          </span>
+          <span className="text-white font-bold text-sm tracking-wide">Confirm Upgrade</span>
         </div>
 
         <div className="px-5 pt-4 pb-3 flex items-center gap-3">
           <BuildingSprite name={sel.name} size={44} />
           <div>
-            <p className="text-white font-semibold text-sm">
-              {sel.name.replace(/([A-Z])/g, " $1").trim()}
-            </p>
-            <p className="text-white/40 text-xs">
-              Level {sel.level} →{" "}
-              <span className="text-amber-400 font-bold">
-                Level {nextItem.level}
-              </span>
-            </p>
+            <p className="text-white font-semibold text-sm">{sel.name.replace(/([A-Z])/g, " $1").trim()}</p>
+            <p className="text-white/40 text-xs">Level {stats.current_level} → <span className="text-amber-400 font-bold">Level {stats.next_level}</span></p>
           </div>
         </div>
+        <div className="mx-5 mb-4 rounded-xl bg-white/5 border border-white/10 divide-y divide-white/10 text-xs">
+          {/* Costs */}
+          {stats.cost_gold > 0 && (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-white/60 font-semibold flex items-center gap-1.5"><Coins size={12} className="text-yellow-400"/> Gold</span>
+              <span className="text-yellow-400 font-bold">{stats.cost_gold.toLocaleString()}</span>
+            </div>
+          )}
+          {stats.cost_elixir > 0 && (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-white/60 font-semibold flex items-center gap-1.5"><Coins size={12} className="text-purple-400"/> Elixir</span>
+              <span className="text-purple-400 font-bold">{stats.cost_elixir.toLocaleString()}</span>
+            </div>
+          )}
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-white/60 font-semibold flex items-center gap-1.5"><Zap size={12} className="text-purple-400"/> Time</span>
+              <span className="text-purple-400 font-bold">{formatTime(stats.time)}</span>
+            </div>
+        </div>
+        
 
-        <div className="mx-5 mb-4 rounded-xl bg-white/5 border border-white/10 divide-y divide-white/10">
-          {nextItem.cost_gold > 0 && (
-            <div className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-white/60 text-xs font-semibold flex items-center gap-1.5">
-                <Coins size={12} className="text-yellow-400" /> Gold cost
-              </span>
-              <span className="text-yellow-400 font-bold text-sm">
-                {nextItem.cost_gold.toLocaleString()}
-              </span>
-            </div>
-          )}
-          {nextItem.cost_elixir > 0 && (
-            <div className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-white/60 text-xs font-semibold flex items-center gap-1.5">
-                <Zap size={12} className="text-purple-400" /> Elixir cost
-              </span>
-              <span className="text-purple-400 font-bold text-sm">
-                {nextItem.cost_elixir.toLocaleString()}
-              </span>
-            </div>
-          )}
-          {nextItem.cost_gold === 0 && nextItem.cost_elixir === 0 && (
-            <div className="px-4 py-2.5">
-              <span className="text-white/40 text-xs">Free upgrade</span>
-            </div>
-          )}
+        <div className="mx-5 mb-4 rounded-xl bg-white/5 border border-white/10 divide-y divide-white/10 text-xs">
+          {/* Base Stats: Health */}
           <div className="flex items-center justify-between px-4 py-2.5">
-            <span className="text-white/60 text-xs font-semibold flex items-center gap-1.5">
-              <Clock size={12} className="text-sky-400" /> Build time
-            </span>
-            <span className="text-sky-300 font-bold text-sm">
-              {formatTime(nextItem.buildTime)}
-            </span>
+            <span className="text-white/60 font-semibold flex items-center gap-1.5"><Shield size={12} className="text-emerald-400"/> Health</span>
+            <span className="text-white font-bold">{stats.current_health} → <span className="text-emerald-400">{stats.next_health}</span></span>
           </div>
+
+          {/* Conditional Stats */}
+          {stats.defense_stats && (
+            <>
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-white/60 font-semibold flex items-center gap-1.5"><Target size={12} className="text-red-400"/> Damage</span>
+                <span className="text-white font-bold">{stats.defense_stats.current_dmg} → <span className="text-red-400">{stats.defense_stats.next_dmg}</span></span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-white/60 font-semibold flex items-center gap-1.5"><Target size={12} className="text-red-400"/> Damage</span>
+                <span className="text-white font-bold">{stats.defense_stats.current_dmg} → <span className="text-red-400">{stats.defense_stats.next_dmg}</span></span>
+              </div>
+            </>
+          )}
+          
+          {stats.storage_stats && (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-white/60 font-semibold flex items-center gap-1.5"><Coins size={12} className="text-yellow-400"/> Capacity</span>
+              <span className="text-white font-bold">{stats.storage_stats.current_capacity} → <span className="text-yellow-400">{stats.storage_stats.next_capacity}</span></span>
+            </div>
+          )}
+
+          {stats.production_stats && (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-white/60 font-semibold flex items-center gap-1.5"><Coins size={12} className="text-yellow-400"/> Generation Per Hour</span>
+              <span className="text-white font-bold">{stats.production_stats.current_gen} → <span className="text-yellow-400">{stats.production_stats.next_gen}</span></span>
+            </div>
+          )}
+
+          
+          
         </div>
 
         <div className="flex gap-2 px-5 pb-5">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 font-bold text-sm transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm active:scale-95 transition-transform"
-          >
-            Upgrade
-          </button>
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 font-bold text-sm">Cancel</button>
+          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm">Upgrade</button>
         </div>
       </div>
     </div>
@@ -555,7 +589,6 @@ function SelectionPanel({
   currentTHLevel: number;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
-
   const nextItem = ALL_ITEMS.find((i) => i.id === sel.building_id + 1);
   const isMaxLevel = !nextItem;
   const canUpgrade = nextItem ? currentTHLevel >= nextItem.thelev : false;
@@ -633,10 +666,9 @@ function SelectionPanel({
         </div>
       </div>
 
-      {showConfirm && nextItem && (
+      {showConfirm && (
         <UpgradeConfirmModal
           sel={sel}
-          nextItem={nextItem}
           onConfirm={() => {
             setShowConfirm(false);
             onUpgrade();
@@ -1443,8 +1475,8 @@ export default function VillageScreen() {
           dElixir = 0;
         const buildings = prev.buildings.map((b) => {
           if (b.id !== instanceId) return b;
-          if (b.building_id === 3011) dGold += 5000;
-          if (b.building_id === 3021) dElixir += 5000;
+          if (b.building_id === 3011) dGold += 1500;
+          if (b.building_id === 3021) dElixir += 1500;
           return { ...b, is_built: true, finish_time: null };
         });
         return {

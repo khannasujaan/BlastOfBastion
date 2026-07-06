@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/khannasujaan/BlastOfBastion/internal/dto"
@@ -162,4 +164,20 @@ func UpgradeFinishBuilding(w http.ResponseWriter, r *http.Request) {
 		log.Println("An Error occured, ", err)
 		return
 	}
+}
+
+func GetUpgradeStatsHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, _ := strconv.Atoi(idStr)
+	stats, err := repository.GetUpgradeStats(id)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Building is already at max level", http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, "Error fetching upgrade details", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }

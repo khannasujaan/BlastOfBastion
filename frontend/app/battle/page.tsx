@@ -63,7 +63,7 @@ export interface DeployedTroop {
   damage: number;
   range: number;
   hp: number;
-  maxHp: number;       
+  maxHp: number;
   lastAttackTime?: number;
 }
 
@@ -73,50 +73,97 @@ export interface DeployedTroops {
 
 export interface Projectile {
   id: number;
-  startX: number;  // Pixi world-space pixel X
+  startX: number;
   startY: number;
   targetX: number;
   targetY: number;
-  progress: number; // 0 → 1
+  progress: number;
   type: "cannon" | "arrow";
 }
 
-const TROOP_ATTACK_SPEED: Record<string, number> = {
-  Barbarian: 1.0,
-  Archer:    1.0,
-  Giant:     2.0,
-  Goblin:    1.0,
-  Wizard:    1.5,
-};
+interface PersistedBattleState {
+  opponentId: string;
+  startTime: number;
+  destroyedIds: number[];
+  buildingHealth: Record<number, number>;
+  troopQuantities: Record<string, number>;
+  deployedTroops: DeployedTroop[];
+}
+
+function loadPersistedBattle(opponentId: string): PersistedBattleState | null {
+  try {
+    const raw = localStorage.getItem(BATTLE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed: PersistedBattleState = JSON.parse(raw);
+    if (parsed.opponentId !== opponentId) return null;
+    if (Date.now() - parsed.startTime >= 3 * 60 * 1000) {
+      localStorage.removeItem(BATTLE_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+const BATTLE_STORAGE_KEY = "active_battle";
+function savePersistedBattle(state: PersistedBattleState) {
+  try {
+    localStorage.setItem(BATTLE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+  }
+}
+
+function clearPersistedBattle() {
+  try {
+    localStorage.removeItem(BATTLE_STORAGE_KEY);
+  } catch {
+  }
+}
 
 export default function BattlePage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const opponentId   = searchParams.get("id");
-  const [playerData,    setPlayerData]    = useState<GameDataSyncResponse | null>(null);
-  const [defenseBuildings, setDefBuildings] = useState<DefenseBuilding[] | null>(null);
-  const [selectedTroop, setSelectedTroop] = useState<string>("");
-  const [deployedTroops, setDeployedTroops] = useState<DeployedTroops | null>(null);
-  const [startTime,     setStartTime]     = useState<number | null>(null);
-  const [endBattle,     setEndBattle]     = useState<boolean>(false);
+
+  const [playerData,        setPlayerData]        = useState<GameDataSyncResponse | null>(null);
+  const [defenseBuildings,  setDefBuildings]       = useState<DefenseBuilding[] | null>(null);
+  const [selectedTroop,     setSelectedTroop]      = useState<string>("");
+  const [deployedTroops,    setDeployedTroops]     = useState<DeployedTroops | null>(null);
+  const [startTime,         setStartTime]          = useState<number | null>(null);
+  const [endBattle,         setEndBattle]          = useState<boolean>(false);
+  const [timerDisplay,      setTimerDisplay]       = useState<string>("03:00");
+  const [fetchError,        setFetchError]         = useState<string | null>(null);
+  const [buildingDestoryed, setBuildingDestroyed]  = useState<number>(0);
+  const [isReturning,       setIsReturning]        = useState<boolean>(false);
+
   const BATTLE_DURATION_MS = 3 * 60 * 1000;
-  const [timerDisplay,  setTimerDisplay]  = useState<string>("03:00");
-  const [fetchError,    setFetchError]    = useState<string | null>(null);
-  const [buildingDestoryed, setBuildingDestroyed] = useState<number>(0);
-  const [isReturning, setIsReturning] = useState<boolean>(false);
-  const [constructionTimers, setConstructionTimers] = useState<Record<number, number>>({});
 
-  const buildingHealthRef   = useRef<Record<number, number>>({});
-  const buildingMaxHpRef    = useRef<Record<number, number>>({});
-  const defenseCooldownRef  = useRef<Record<number, number>>({});
-  const projectilesRef      = useRef<Projectile[]>([]);
-  const projIdRef           = useRef(0);
+  const buildingHealthRef  = useRef<Record<number, number>>({});
+  const buildingMaxHpRef   = useRef<Record<number, number>>({});
+  const defenseCooldownRef = useRef<Record<number, number>>({});
+  const projectilesRef     = useRef<Projectile[]>([]);
+  const projIdRef          = useRef(0);
+  const destructionRef     = useRef(0);
+  const goldGainedRef      = useRef(0);
+  const elixirGainedRef    = useRef(0);
+  
+  const deployedTroopsRef  = useRef<DeployedTroop[]>([]);
 
-  const destructionRef  = useRef(0);
-  const goldGainedRef   = useRef(0);
-  const elixirGainedRef = useRef(0);
+  const persistStateRef = useRef<{
+    opponentId: string;
+    startTime: number;
+    destroyedIds: number[];
+    troopQuantities: Record<string, number>;
+  } | null>(null);
 
-  useEffect(() => { setStartTime(Date.now()); }, []);
+  const saveBattleState = useCallback(() => {
+    if (!persistStateRef.current) return;
+    savePersistedBattle({
+      ...persistStateRef.current,
+      buildingHealth: { ...buildingHealthRef.current },
+      deployedTroops: deployedTroopsRef.current,
+    });
+  }, []);
 
   useEffect(() => {
     setPlayerData(null);
@@ -124,6 +171,17 @@ export default function BattlePage() {
     setDeployedTroops(null);
     setEndBattle(false);
     setFetchError(null);
+    buildingHealthRef.current  = {};
+    buildingMaxHpRef.current   = {};
+    defenseCooldownRef.current = {};
+    projectilesRef.current     = [];
+    deployedTroopsRef.current  = [];  
+    persistStateRef.current    = null;
+
+    if (!opponentId) return;
+
+    const persisted = loadPersistedBattle(opponentId);
+
     async function fetchOpponentBase() {
       function getToken(): string | null {
         const t = localStorage.getItem("JWTtoken");
@@ -140,7 +198,7 @@ export default function BattlePage() {
           body: JSON.stringify({ opponent: opponentId }),
           cache: "no-store",
         });
-        console.log("here")
+
         if (!res.ok) { setFetchError(`Server returned status ${res.status} for getvillage`); return; }
 
         const rawText = await res.text();
@@ -150,12 +208,78 @@ export default function BattlePage() {
         const rawBuildings: VillageBuilding[] = data.buildings || [];
         const rawTroops: TroopBuilding[]      = data.troops    || [];
 
-        const formattedData: GameDataSyncResponse = {
-          ...data,
-          troops:    rawTroops,
-          buildings: rawBuildings.map((b) => ({ ...b, destroyed: false })),
-        };
-        setPlayerData(formattedData);
+        if (persisted) {
+          const destroyedSet = new Set(persisted.destroyedIds);
+
+          const restoredBuildings = rawBuildings.map(b => ({
+            ...b,
+            destroyed: destroyedSet.has(b.id),
+          }));
+
+          const initialHp: Record<number, number> = {};
+          const maxHp: Record<number, number>     = {};
+          rawBuildings.forEach(b => {
+            const hp = b.hp || 1000;
+            maxHp[b.id]     = hp;
+            initialHp[b.id] = destroyedSet.has(b.id)
+              ? 0
+              : (persisted.buildingHealth[b.id] ?? hp);
+          });
+          buildingHealthRef.current = initialHp;
+          buildingMaxHpRef.current  = maxHp;
+
+          const restoredTroops = rawTroops.map(t => ({
+            ...t,
+            quantity: persisted.troopQuantities[t.name] ?? t.quantity,
+          }));
+
+          setPlayerData({
+            ...data,
+            troops:    restoredTroops,
+            buildings: restoredBuildings,
+          });
+          setStartTime(persisted.startTime);
+
+          if (persisted.deployedTroops && persisted.deployedTroops.length > 0) {
+            setDeployedTroops({ troops: persisted.deployedTroops });
+            deployedTroopsRef.current = persisted.deployedTroops;
+          }
+
+          persistStateRef.current = {
+            opponentId,
+            startTime:       persisted.startTime,
+            destroyedIds:    persisted.destroyedIds,
+            troopQuantities: persisted.troopQuantities,
+          };
+        } else {
+          const st = Date.now();
+
+          setPlayerData({
+            ...data,
+            troops:    rawTroops,
+            buildings: rawBuildings.map(b => ({ ...b, destroyed: false })),
+          });
+          setStartTime(st);
+
+          const troopQuantities: Record<string, number> = {};
+          rawTroops.forEach(t => { troopQuantities[t.name] = t.quantity; });
+
+          persistStateRef.current = {
+            opponentId,
+            startTime:       st,
+            destroyedIds:    [],
+            troopQuantities,
+          };
+
+          savePersistedBattle({
+            opponentId,
+            startTime:      st,
+            destroyedIds:   [],
+            buildingHealth: {},
+            troopQuantities,
+            deployedTroops: [],
+          });
+        }
 
         const defRes = await fetch(`${API_BASE}/battle/getdefense`, {
           method: "POST",
@@ -175,6 +299,7 @@ export default function BattlePage() {
         setFetchError(msg);
       }
     }
+
     fetchOpponentBase();
   }, [opponentId, router]);
 
@@ -211,6 +336,12 @@ export default function BattlePage() {
     return () => clearInterval(iv);
   }, [playerData, startTime, endBattle]);
 
+  useEffect(() => {
+    if (!startTime || endBattle) return;
+    const iv = setInterval(() => { saveBattleState(); }, 2000);
+    return () => clearInterval(iv);
+  }, [startTime, endBattle, saveBattleState]);
+
   const deployTroops = (gridX: number, gridY: number) => {
     if (!selectedTroop) return;
     const troopData = playerData?.troops.find(t => t.name === selectedTroop);
@@ -218,28 +349,36 @@ export default function BattlePage() {
 
     setPlayerData(prev => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        troops: prev.troops.map(t =>
-          t.name === selectedTroop ? { ...t, quantity: t.quantity - 1 } : t
-        ),
-      };
+      const updated = prev.troops.map(t =>
+        t.name === selectedTroop ? { ...t, quantity: t.quantity - 1 } : t
+      );
+      if (persistStateRef.current) {
+        const newQtys = { ...persistStateRef.current.troopQuantities };
+        const troop   = updated.find(t => t.name === selectedTroop);
+        if (troop) newQtys[selectedTroop] = troop.quantity;
+        persistStateRef.current.troopQuantities = newQtys;
+      }
+      return { ...prev, troops: updated };
     });
 
     setDeployedTroops(prev => {
       const stats = playerData!.troops.find(t => t.name === selectedTroop)!;
       const newTroop: DeployedTroop = {
-        id:          Date.now() + Math.random(),
-        troopName:   selectedTroop,
+        id:        Date.now() + Math.random(),
+        troopName: selectedTroop,
         gridX,
         gridY,
-        speed:       (stats.speed / 250) || 0.05,
-        damage:      stats.damage  || 2,
-        range:       stats.range   || 2,
-        hp:          stats.hp      || 100,
-        maxHp:       stats.hp      || 100,   
+        speed:     (stats.speed / 250) || 0.05,
+        damage:    stats.damage  || 2,
+        range:     stats.range   || 2,
+        hp:        stats.hp      || 100,
+        maxHp:     stats.hp      || 100,
       };
-      return prev ? { ...prev, troops: [...prev.troops, newTroop] } : { troops: [newTroop] };
+      
+      const updatedTroopsArray = prev ? [...prev.troops, newTroop] : [newTroop];
+      deployedTroopsRef.current = updatedTroopsArray;
+      
+      return { troops: updatedTroopsArray };
     });
   };
 
@@ -254,11 +393,26 @@ export default function BattlePage() {
         ),
       };
     });
+
+    if (persistStateRef.current) {
+      if (!persistStateRef.current.destroyedIds.includes(buildingId)) {
+        persistStateRef.current.destroyedIds = [
+          ...persistStateRef.current.destroyedIds,
+          buildingId,
+        ];
+      }
+      savePersistedBattle({
+        ...persistStateRef.current,
+        buildingHealth: { ...buildingHealthRef.current },
+        deployedTroops: deployedTroopsRef.current,
+      });
+    }
   }, []);
 
   const concludeBattle = async () => {
     if (isReturning) return;
     setIsReturning(true);
+    clearPersistedBattle();
 
     const token = localStorage.getItem("JWTtoken");
     if (!token || !opponentId) {
@@ -266,35 +420,32 @@ export default function BattlePage() {
       return;
     }
 
-    const payload = {
-      defender: opponentId,
-      percentage: destructionRef.current,
-      gold: goldGainedRef.current,
-      elixir: elixirGainedRef.current,
-    };
-
     try {
       const res = await fetch(`${API_BASE}/battle/conclusion`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          defender:   opponentId,
+          percentage: destructionRef.current,
+          gold:       goldGainedRef.current,
+          elixir:     elixirGainedRef.current,
+        }),
         cache: "no-store",
       });
-      
-      if (!res.ok) { 
-        console.error(`Server returned status ${res.status} for conclusion`); 
+      if (!res.ok) {
+        console.error(`Server returned status ${res.status} for conclusion`);
       }
-    } catch (err: any) {
-      console.error("Conclusion Fetch Error:", err.message);
+    } catch (err: unknown) {
+      console.error("Conclusion Fetch Error:", err instanceof Error ? err.message : err);
     }
 
-    router.refresh(); 
+    router.refresh();
     router.replace("/village");
   };
 
   useEffect(() => {
     if (!playerData) return;
-    const total    = playerData.buildings.length;
+    const total     = playerData.buildings.length;
     const destroyed = playerData.buildings.filter(b => b.destroyed).length;
     const pct = total > 0 ? Math.floor((destroyed / total) * 100) : 0;
 
@@ -310,7 +461,7 @@ export default function BattlePage() {
 
   const TILE = 50;
   const gridCentre = (gridX: number, gridY: number) => ({
-    x: (gridX - 1) * TILE + TILE * 1.5,   // buildings are 3×3, centre offset
+    x: (gridX - 1) * TILE + TILE * 1.5,
     y: (gridY - 1) * TILE + TILE * 1.5,
   });
   const troopPixel = (gridX: number, gridY: number) => ({
@@ -357,42 +508,33 @@ export default function BattlePage() {
           if (closestIdx !== -1) {
             const lastAtk = defenseCooldownRef.current[def.id] || 0;
             if (now - lastAtk >= def.attackspeed) {
-              // Deal damage
               currentTroops[closestIdx] = {
                 ...currentTroops[closestIdx],
                 hp: currentTroops[closestIdx].hp - def.damage,
               };
               defenseCooldownRef.current[def.id] = now;
 
-              const origin = gridCentre(def.grid_x, def.grid_y);
-              const target = troopPixel(
-                currentTroops[closestIdx].gridX,
-                currentTroops[closestIdx].gridY,
-              );
+              const origin  = gridCentre(def.grid_x, def.grid_y);
+              const target  = troopPixel(currentTroops[closestIdx].gridX, currentTroops[closestIdx].gridY);
               const defName = def.name ?? "";
               const projType: Projectile["type"] =
-                defName.includes("Archer") || defName.includes("ATower") || defName.includes("Wizard") || defName.includes("WTower")
-                  ? "arrow"
-                  : "cannon";
+                defName.includes("Archer") || defName.includes("ATower") ||
+                defName.includes("Wizard") || defName.includes("WTower")
+                  ? "arrow" : "cannon";
 
               projectilesRef.current = [
                 ...projectilesRef.current,
-                {
-                  id:       ++projIdRef.current,
-                  startX:   origin.x,
-                  startY:   origin.y,
-                  targetX:  target.x,
-                  targetY:  target.y,
-                  progress: 0,
-                  type:     projType,
-                },
+                { id: ++projIdRef.current, startX: origin.x, startY: origin.y, targetX: target.x, targetY: target.y, progress: 0, type: projType },
               ];
             }
           }
         });
 
         currentTroops = currentTroops.filter(t => t.hp > 0);
-        if (currentTroops.length === 0) return { troops: [] };
+        if (currentTroops.length === 0) {
+          deployedTroopsRef.current = [];
+          return { troops: [] };
+        }
 
         const updatedTroops = currentTroops.map(troop => {
           let closestBuilding: VillageBuilding | null = null;
@@ -403,10 +545,7 @@ export default function BattlePage() {
             const dx   = building.grid_x - troop.gridX;
             const dy   = building.grid_y - troop.gridY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDistance) {
-              minDistance     = dist;
-              closestBuilding = building;
-            }
+            if (dist < minDistance) { minDistance = dist; closestBuilding = building; }
           });
 
           if (!closestBuilding) {
@@ -432,15 +571,7 @@ export default function BattlePage() {
                 const bldCenter   = gridCentre(targetB.grid_x, targetB.grid_y);
                 projectilesRef.current = [
                   ...projectilesRef.current,
-                  {
-                    id:       ++projIdRef.current,
-                    startX:   troopCenter.x,
-                    startY:   troopCenter.y,
-                    targetX:  bldCenter.x,
-                    targetY:  bldCenter.y,
-                    progress: 0,
-                    type:     "arrow",   
-                  },
+                  { id: ++projIdRef.current, startX: troopCenter.x, startY: troopCenter.y, targetX: bldCenter.x, targetY: bldCenter.y, progress: 0, type: "arrow" },
                 ];
               }
 
@@ -456,6 +587,8 @@ export default function BattlePage() {
           };
         });
 
+        deployedTroopsRef.current = updatedTroops;
+        
         return { troops: updatedTroops };
       });
     }, 50);
@@ -474,13 +607,8 @@ export default function BattlePage() {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#0d1117] gap-4">
         <p className="text-red-500 font-mono text-lg animate-pulse">Connection Error</p>
-        <p className="text-white font-mono text-sm max-w-lg text-center bg-black/50 p-4 rounded-xl border border-red-500/30">
-          {fetchError}
-        </p>
-        <button
-          onClick={() => router.back()}
-          className="mt-4 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 px-6 py-2 rounded-xl transition-all"
-        >
+        <p className="text-white font-mono text-sm max-w-lg text-center bg-black/50 p-4 rounded-xl border border-red-500/30">{fetchError}</p>
+        <button onClick={() => router.back()} className="mt-4 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 px-6 py-2 rounded-xl transition-all">
           Go Back
         </button>
       </div>
@@ -494,17 +622,17 @@ export default function BattlePage() {
     );
   }
 
-  const totalBuildings      = playerData.buildings.length;
-  const destroyedBuildings  = playerData.buildings.filter(b => b.destroyed).length;
-  const destructionPercentage =
-    totalBuildings > 0 ? Math.floor((destroyedBuildings / totalBuildings) * 100) : 0;
+  const totalBuildings        = playerData.buildings.length;
+  const destroyedBuildings    = playerData.buildings.filter(b => b.destroyed).length;
+  const destructionPercentage = totalBuildings > 0 ? Math.floor((destroyedBuildings / totalBuildings) * 100) : 0;
   const totalGoldStorages     = playerData.buildings.filter(b => b.name === "GoldStor"   || b.name === "GoldStorage").length;
   const destroyedGoldStorages = playerData.buildings.filter(b => b.destroyed && (b.name === "GoldStor"   || b.name === "GoldStorage")).length;
   const totalElixirStorages     = playerData.buildings.filter(b => b.name === "ElixirStor" || b.name === "ElixirStorage").length;
   const destroyedElixirStorages = playerData.buildings.filter(b => b.destroyed && (b.name === "ElixirStor" || b.name === "ElixirStorage")).length;
   const goldGained   = totalGoldStorages   > 0 ? Math.floor(playerData.gold   * (destroyedGoldStorages   / totalGoldStorages)   * 0.20) : 0;
   const elixirGained = totalElixirStorages > 0 ? Math.floor(playerData.elixir * (destroyedElixirStorages / totalElixirStorages) * 0.20) : 0;
-  const isVictory = destructionPercentage >= 50;
+
+  const isVictory       = destructionPercentage >= 50;
   const modalBorder     = isVictory ? "border-green-600"    : "border-red-600";
   const modalGlow       = isVictory ? "rgba(22,163,74,0.3)" : "rgba(220,38,38,0.3)";
   const modalTitleColor = isVictory ? "text-green-500"      : "text-red-500";
@@ -514,8 +642,8 @@ export default function BattlePage() {
   const btnHoverFrom    = isVictory ? "hover:from-green-700": "hover:from-red-700";
   const btnHoverTo      = isVictory ? "hover:to-green-900"  : "hover:to-red-900";
   const btnShadow       = isVictory
-    ? "shadow-[0_6px_0_rgb(5,94,11)]  hover:shadow-[0_6px_0_rgb(5,115,11)]  active:shadow-none"
-    : "shadow-[0_6px_0_rgb(127,0,0)]  hover:shadow-[0_6px_0_rgb(150,0,0)]   active:shadow-none";
+    ? "shadow-[0_6px_0_rgb(5,94,11)] hover:shadow-[0_6px_0_rgb(5,115,11)] active:shadow-none"
+    : "shadow-[0_6px_0_rgb(127,0,0)] hover:shadow-[0_6px_0_rgb(150,0,0)] active:shadow-none";
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-green-900">
@@ -526,19 +654,13 @@ export default function BattlePage() {
       </div>
 
       <div className="absolute top-4 right-4 z-10 bg-black/70 backdrop-blur-md border border-red-500/30 rounded-xl px-4 py-2">
-        <button
-          onClick={() => { setDeployedTroops(null); setEndBattle(true); }}
-          className="text-red-400 hover:text-white transition-colors"
-        >
-          EXIT
-          <X size={35} />
+        <button onClick={() => { setDeployedTroops(null); setEndBattle(true); }} className="text-red-400 hover:text-white transition-colors">
+          EXIT <X size={35} />
         </button>
       </div>
 
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/80 backdrop-blur-md border border-white/20 rounded-xl px-6 py-2 shadow-lg flex flex-col items-center">
-        <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-0.5">
-          Time Remaining
-        </p>
+        <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-0.5">Time Remaining</p>
         <h2 className={`font-mono font-bold text-2xl tracking-wider ${timerDisplay.startsWith("00:") ? "text-red-500 animate-pulse" : "text-white"}`}>
           {timerDisplay}
         </h2>
@@ -561,9 +683,7 @@ export default function BattlePage() {
             >
               <TroopSprite name={troop.name} />
               <span className="text-white text-[10px] font-semibold text-center leading-tight">{troop.name}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                Lv {troop.level}
-              </span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Lv {troop.level}</span>
               <span className="text-white/40 text-[9px]">x{troop.quantity}</span>
             </div>
           ))}
@@ -573,25 +693,19 @@ export default function BattlePage() {
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-6 py-2 flex items-center gap-3">
         <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Destruction</span>
         <div className="w-40 h-2.5 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${destructionPercentage >= 50 ? "bg-green-500" : "bg-red-500"}`}
-            style={{ width: `${destructionPercentage}%` }}
-          />
+          <div className={`h-full rounded-full transition-all ${destructionPercentage >= 50 ? "bg-green-500" : "bg-red-500"}`} style={{ width: `${destructionPercentage}%` }} />
         </div>
-        <span className={`font-bold text-sm ${destructionPercentage >= 50 ? "text-green-400" : "text-red-400"}`}>
-          {destructionPercentage}%
-        </span>
+        <span className={`font-bold text-sm ${destructionPercentage >= 50 ? "text-green-400" : "text-red-400"}`}>{destructionPercentage}%</span>
       </div>
-      <div className="absolute bottom-4 right-4 z-10 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-6 py-2 flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-bold tracking-widest text-yellow-500 uppercase">
-              Available Gold: {(totalGoldStorages==0)?(0):(2/10*playerData.gold).toLocaleString()}
-            </span>
-            <span className="text-[10px] font-bold tracking-widest text-purple-400 uppercase">
-              Available Elixir: {(totalElixirStorages==0)?(0):(2/10*playerData.elixir).toLocaleString()}
-            </span>
-          </div>
+
+      <div className="absolute bottom-4 right-4 z-10 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-6 py-2">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-bold tracking-widest text-yellow-500 uppercase">
+            Available Gold: {totalGoldStorages === 0 ? 0 : (0.2 * playerData.gold).toLocaleString()}
+          </span>
+          <span className="text-[10px] font-bold tracking-widest text-purple-400 uppercase">
+            Available Elixir: {totalElixirStorages === 0 ? 0 : (0.2 * playerData.elixir).toLocaleString()}
+          </span>
         </div>
       </div>
 
@@ -615,13 +729,10 @@ export default function BattlePage() {
             </h2>
 
             <div className="flex gap-1 text-3xl">
-              {["⭐", "⭐", "⭐"].map((star, i) => {
+              {["⭐","⭐","⭐"].map((star, i) => {
                 const thresholds = [50, 75, 100];
                 return (
-                  <span
-                    key={i}
-                    className={`transition-opacity ${destructionPercentage >= thresholds[i] ? "opacity-100" : "opacity-20"}`}
-                  >
+                  <span key={i} className={`transition-opacity ${destructionPercentage >= thresholds[i] ? "opacity-100" : "opacity-20"}`}>
                     {star}
                   </span>
                 );
@@ -631,9 +742,7 @@ export default function BattlePage() {
             <div className="w-full bg-black/60 rounded-xl p-5 flex flex-col gap-4 border border-white/10">
               <div className="flex justify-between items-center">
                 <span className="text-gray-400 font-bold text-sm uppercase tracking-wider">Destruction</span>
-                <span className={`text-3xl font-black ${isVictory ? "text-green-400" : "text-red-400"}`}>
-                  {destructionPercentage}%
-                </span>
+                <span className={`text-3xl font-black ${isVictory ? "text-green-400" : "text-red-400"}`}>{destructionPercentage}%</span>
               </div>
               <div className="h-px w-full bg-white/10" />
               <div className="flex flex-col gap-3">
@@ -655,9 +764,7 @@ export default function BattlePage() {
             </div>
 
             <button
-              onClick={() => {
-                concludeBattle();
-              }}
+              onClick={() => { concludeBattle(); }}
               className={`w-full bg-linear-to-b ${btnFrom} ${btnTo} ${btnHoverFrom} ${btnHoverTo} text-white font-black text-lg py-4 rounded-xl uppercase tracking-widest ${btnShadow} active:translate-y-1.5 transition-all`}
             >
               Return Home
