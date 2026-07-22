@@ -96,7 +96,7 @@ function loadPersistedBattle(opponentId: string): PersistedBattleState | null {
     if (!raw) return null;
     const parsed: PersistedBattleState = JSON.parse(raw);
     if (parsed.opponentId !== opponentId) return null;
-    if (Date.now() - parsed.startTime >= 3 * 60 * 1000) {
+    if (parsed.startTime > 0 && Date.now() - parsed.startTime >= 3 * 60 * 1000) {
       localStorage.removeItem(BATTLE_STORAGE_KEY);
       return null;
     }
@@ -238,7 +238,10 @@ export default function BattlePage() {
             troops:    restoredTroops,
             buildings: restoredBuildings,
           });
-          setStartTime(persisted.startTime);
+          
+          if (persisted.startTime > 0) {
+            setStartTime(persisted.startTime);
+          }
 
           if (persisted.deployedTroops && persisted.deployedTroops.length > 0) {
             setDeployedTroops({ troops: persisted.deployedTroops });
@@ -252,28 +255,25 @@ export default function BattlePage() {
             troopQuantities: persisted.troopQuantities,
           };
         } else {
-          const st = Date.now();
-
           setPlayerData({
             ...data,
             troops:    rawTroops,
             buildings: rawBuildings.map(b => ({ ...b, destroyed: false })),
           });
-          setStartTime(st);
 
           const troopQuantities: Record<string, number> = {};
           rawTroops.forEach(t => { troopQuantities[t.name] = t.quantity; });
 
           persistStateRef.current = {
             opponentId,
-            startTime:       st,
+            startTime:       0, 
             destroyedIds:    [],
             troopQuantities,
           };
 
           savePersistedBattle({
             opponentId,
-            startTime:      st,
+            startTime:      0,
             destroyedIds:   [],
             buildingHealth: {},
             troopQuantities,
@@ -346,6 +346,18 @@ export default function BattlePage() {
     if (!selectedTroop) return;
     const troopData = playerData?.troops.find(t => t.name === selectedTroop);
     if (!troopData || troopData.quantity <= 0) return;
+    if (!startTime) {
+      const now = Date.now();
+      setStartTime(now);
+      if (persistStateRef.current) {
+        persistStateRef.current.startTime = now;
+        savePersistedBattle({
+          ...persistStateRef.current,
+          buildingHealth: { ...buildingHealthRef.current },
+          deployedTroops: deployedTroopsRef.current,
+        });
+      }
+    }
 
     setPlayerData(prev => {
       if (!prev) return prev;
@@ -598,7 +610,7 @@ export default function BattlePage() {
     }, 50);
 
     return () => clearInterval(battleTick);
-  }, [playerData, defenseBuildings, destroyBuilding]);
+  }, [playerData, defenseBuildings, destroyBuilding, startTime]);
 
   if (!opponentId) {
     return (
