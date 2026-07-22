@@ -227,13 +227,16 @@ func UpgradeBuilding(id uuid.UUID, BuildReq dto.BuildUpgradeStartRequest) error 
 		return err
 	}
 	defer tx.Rollback()
-	log.Println(BuildReq.BuildingID, BuildReq.GridX, BuildReq.GridY)
-	query := `SELECT id FROM player_buildings WHERE player_id = $1 AND grid_x = $2 AND grid_y = $3`
-	var instanceId int
-	err = tx.QueryRow(query, id, BuildReq.GridX, BuildReq.GridY).Scan(&instanceId)
+	query := `SELECT id, building_id, is_built FROM player_buildings WHERE player_id = $1 AND grid_x = $2 AND grid_y = $3`
+	var instanceId, currentBuildingID int
+	var isBuilt bool
+	err = tx.QueryRow(query, id, BuildReq.GridX, BuildReq.GridY).Scan(&instanceId, &currentBuildingID, &isBuilt)
 	if err != nil {
 		log.Println("Error in fetching Data, ", err)
 		return err
+	}
+	if !isBuilt {
+		return errors.New("building is already under construction")
 	}
 
 	query = `SELECT id, unlock_thall_level, cost_gold, cost_elixir, build_time FROM building_catalog WHERE id = $1`

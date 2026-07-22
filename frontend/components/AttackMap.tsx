@@ -185,10 +185,12 @@ export default function AttackMap({
         const id = container._buildingId;
         const current = buildingHealthRef.current?.[id] ?? 0;
         const max = buildingMaxHpRef.current?.[id] ?? 1;
-        const pct = current / max;
 
         container._hpBar.clear();
-        drawHpBar(container._hpBar, 2, HP_BAR_Y_OFFSET, HP_BAR_W, HP_BAR_H, pct);
+        if (current < max && current > 0) {
+          const pct = current / max;
+          drawHpBar(container._hpBar, 2, HP_BAR_Y_OFFSET, HP_BAR_W, HP_BAR_H, pct);
+        }
       });
 
       const projLayer = projectileLayerRef.current;
@@ -307,7 +309,9 @@ export default function AttackMap({
       const hpBar = new PIXI.Graphics();
       const initHp = buildingHealthRef.current?.[b.id] ?? b.hp ?? 1000;
       const maxHp = buildingMaxHpRef.current?.[b.id] ?? b.hp ?? 1000;
-      drawHpBar(hpBar, 2, HP_BAR_Y_OFFSET, HP_BAR_W, HP_BAR_H, initHp / maxHp);
+      if (initHp < maxHp && initHp > 0) {
+        drawHpBar(hpBar, 2, HP_BAR_Y_OFFSET, HP_BAR_W, HP_BAR_H, initHp / maxHp);
+      }
       container._hpBar = hpBar;
       container.addChild(hpBar);
 

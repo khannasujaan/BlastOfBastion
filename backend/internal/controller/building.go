@@ -122,6 +122,10 @@ func UpgradeStartBuilding(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not enough resources", http.StatusBadRequest)
 		log.Println("Not enough resources")
 		return
+	} else if err.Error() == "building is already under construction" {
+		http.Error(w, "Building is already under construction", http.StatusBadRequest)
+		log.Println("Building is already under construction")
+		return
 	} else if err == repository.ErrTownhallLevelLow {
 		http.Error(w, "Town hall level low", http.StatusBadRequest)
 		log.Println("Town hall level low")

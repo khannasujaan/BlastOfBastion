@@ -33,7 +33,11 @@ func Matchmaking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := repository.Matchmaking(parsedUUID)
-	if err != nil {
+	if err.Error() == "no opponent found" {
+		http.Error(w, "no opponent found", http.StatusNotFound)
+		log.Println("no opponent found")
+		return
+	} else if err != nil {
 		http.Error(w, "An Error occured", http.StatusInternalServerError)
 		log.Println("An Error occured, ", err)
 		return

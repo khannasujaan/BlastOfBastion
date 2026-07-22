@@ -533,6 +533,10 @@ export default function BattlePage() {
         currentTroops = currentTroops.filter(t => t.hp > 0);
         if (currentTroops.length === 0) {
           deployedTroopsRef.current = [];
+          const remainingUndeployed = playerData.troops.reduce((sum, t) => sum + t.quantity, 0);
+          if (remainingUndeployed === 0 && startTime !== null) {
+            setTimeout(() => setEndBattle(true), 0);
+          }
           return { troops: [] };
         }
 
@@ -550,7 +554,7 @@ export default function BattlePage() {
 
           if (!closestBuilding) {
             setDeployedTroops(null);
-            setEndBattle(true);
+            setTimeout(() => setEndBattle(true), 0); 
             return troop;
           }
 

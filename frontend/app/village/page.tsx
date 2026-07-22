@@ -1638,7 +1638,7 @@ export default function VillageScreen() {
 
     const hasArmy = playerData?.troops && playerData.troops.some(t => t.quantity > 0);
     if (!hasArmy) {
-      showToast("No army to fight with", "error");
+      setActiveModal("train");
       return;
     }
 

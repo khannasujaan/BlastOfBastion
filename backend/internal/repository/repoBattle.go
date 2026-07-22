@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"log"
 	"math/rand/v2"
 	"time"
@@ -65,6 +66,10 @@ func Matchmaking(id uuid.UUID) (dto.BattleId, error) {
 			return empty, err
 		}
 		opponents = append(opponents, oppId)
+	}
+
+	if len(opponents) == 0 {
+		return empty, errors.New("no opponent found")
 	}
 
 	randomIndex := rand.IntN(len(opponents))
