@@ -34,6 +34,7 @@ func Routes() http.Handler {
 	mux.HandleFunc("/battle/conclusion", middleware.VerifyJWT(controller.Conclusion))
 	mux.HandleFunc("/village/troop/levelsync", middleware.VerifyJWT(controller.GetTroopLevel))
 	mux.HandleFunc("/village/troop/getdata", middleware.VerifyJWT(controller.GetTroopData))
+	mux.HandleFunc("/village/catalog", middleware.VerifyJWT(controller.GetCatalog))
 
 	corsMux := middleware.EnableCORS(mux)
 	loggedMux := middleware.RequestLogger(corsMux)

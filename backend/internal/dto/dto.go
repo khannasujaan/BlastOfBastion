@@ -199,3 +199,32 @@ type ProductionStats struct {
 	CurrentGen int `json:"current_gen"`
 	NextGen    int `json:"next_gen"`
 }
+
+type CatalogBuilding struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Level      int    `json:"level"`
+	CostGold   int    `json:"cost_gold"`
+	CostElixir int    `json:"cost_elixir"`
+	Thelev     int    `json:"thelev"`
+	BuildTime  int    `json:"buildTime"`
+}
+
+type CatalogTroop struct {
+	ID               int    `json:"id"`
+	Name             string `json:"name"`
+	Damage           int    `json:"damage"`
+	Health           int    `json:"health"`
+	HousingSpace     int    `json:"housing_space"`
+	Level            int    `json:"level"`
+	Speed            int    `json:"speed"`
+	UnlockThallLevel int    `json:"unlock_thall_level"`
+	Range            int    `json:"range"`
+	CostElixir       int    `json:"cost_elixir"`
+}
+
+type CatalogResponse struct {
+	Buildings    []CatalogBuilding      `json:"buildings"`
+	Troops       []CatalogTroop         `json:"troops"`
+	MaxBuildings map[string]map[int]int `json:"max_buildings"`
+}

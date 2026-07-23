@@ -99,3 +99,55 @@ func GetGameData(id uuid.UUID) (*dto.GameDataSyncResponse, error) {
 	return &response, nil
 
 }
+
+func GetGameCatalog() (dto.CatalogResponse, error) {
+	var response dto.CatalogResponse
+	response.MaxBuildings = make(map[string]map[int]int)
+
+	tx, err := database.Db.Begin()
+	if err != nil {
+		return response, err
+	}
+	defer tx.Rollback()
+
+	bRows, err := tx.Query(`SELECT id, name, level, cost_gold, cost_elixir, unlock_thall_level, build_time FROM building_catalog`)
+	if err != nil {
+		return response, err
+	}
+	defer bRows.Close()
+	for bRows.Next() {
+		var b dto.CatalogBuilding
+		bRows.Scan(&b.ID, &b.Name, &b.Level, &b.CostGold, &b.CostElixir, &b.Thelev, &b.BuildTime)
+		response.Buildings = append(response.Buildings, b)
+	}
+
+	tRows, err := tx.Query(`SELECT id, name, damage, health, housing_space, level, speed, unlock_thall_level, range, cost_elixir FROM troops_catalog`)
+	if err != nil {
+		return response, err
+	}
+	defer tRows.Close()
+	for tRows.Next() {
+		var t dto.CatalogTroop
+		tRows.Scan(&t.ID, &t.Name, &t.Damage, &t.Health, &t.HousingSpace, &t.Level, &t.Speed, &t.UnlockThallLevel, &t.Range, &t.CostElixir)
+		response.Troops = append(response.Troops, t)
+	}
+
+	mRows, err := tx.Query(`SELECT name, thall_level, quantity FROM max_buildings`)
+	if err != nil {
+		return response, err
+	}
+	defer mRows.Close()
+	for mRows.Next() {
+		var name string
+		var thall, qty int
+		mRows.Scan(&name, &thall, &qty)
+
+		if _, exists := response.MaxBuildings[name]; !exists {
+			response.MaxBuildings[name] = make(map[int]int)
+		}
+		response.MaxBuildings[name][thall] = qty
+	}
+
+	tx.Commit()
+	return response, nil
+}
