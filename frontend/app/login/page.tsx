@@ -38,22 +38,22 @@ async function loginUser(fields: FormFields): Promise<void> {
     body: JSON.stringify(fields),
   });
 
-  if (!res.ok) {
-    // Try to parse a JSON error body; fall back to status text
-    let message = `Login failed (${res.status}).`;
-    try {
-      const body = await res.json();
-      if (body?.error || body?.message) {
-        message = body.error ?? body.message;
-      }
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("text/html")) {
+    throw new Error("API Route Error: The server returned an HTML page. Please verify your NEXT_PUBLIC_API_URL is pointing to the Go backend and that the backend is running.");
+  }
 
-    } catch {
-      // ignore parse error
-    }
-    throw new Error(message);
+  if (!res.ok) {
+    // Your Go backend sends plain text errors (e.g., "Username not found")
+    const errorMessage = await res.text();
+    throw new Error(errorMessage.trim() || `Login failed (${res.status}).`);
+  } 
+  
+  const body = await res.json();
+  if (body.token) {
+    localStorage.setItem("JWTtoken", body.token);
   } else {
-    const body = await res.json();
-    localStorage.setItem("JWTtoken", body.token)
+    throw new Error("Login succeeded, but no token was returned.");
   }
 }
 // 201 Created — no body expected
