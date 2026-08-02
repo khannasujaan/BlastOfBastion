@@ -1,0 +1,17 @@
+FROM golang:alpine
+
+RUN apk add --no-cache make git build-base
+
+WORKDIR /app
+
+COPY . .
+
+WORKDIR /app/backend
+RUN go mod tidy
+RUN go mod download
+
+WORKDIR /app
+
+EXPOSE 8080
+
+CMD ["go", "run", "./backend"]

@@ -1,0 +1,7 @@
+.env
+
+go.work
+go.work.sum
+
+postman/
+.postman/
