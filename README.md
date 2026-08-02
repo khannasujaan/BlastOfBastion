@@ -18,11 +18,17 @@ cd BastionBlast
 Create a `.env` file in the root directory of the project. This file is required to configure the database credentials and route internal connections.
 
 ```env
+# Service ports
+BACKEND_PORT=8080
+FRONTEND_PORT=3000
+
 # Database Credentials
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=yourpassword
 POSTGRES_DB=blastofbastion
 ```
+
+If you need to use other ports, change `BACKEND_PORT` and/or `FRONTEND_PORT` here and then restart Docker Compose.
 
 Once your .env file is configured, you can spin up the entire application with a single command:
 

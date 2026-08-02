@@ -23,6 +23,12 @@ func main() {
 	corsMux := routes.Routes()
 
 	port := os.Getenv("PORT")
+	if port == "" {
+		port = os.Getenv("BACKEND_PORT")
+	}
+	if port == "" {
+		port = "8080"
+	}
 	log.Println("Loading Server at PORT", port)
 	if err := http.ListenAndServe(":"+port, corsMux); err != nil {
 		log.Fatal("Error in Server loading")
